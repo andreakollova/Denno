@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppTab, SubscriptionStatus } from './types';
 import DigestPage from './pages/DigestPage';
@@ -106,10 +105,10 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen font-sans flex justify-center transition-colors duration-300 ${profile.theme === 'dark' ? 'dark bg-slate-950' : 'bg-slate-50'}`}>
+    <div className={`h-full w-full font-sans flex justify-center transition-colors duration-300 ${profile.theme === 'dark' ? 'dark bg-slate-950' : 'bg-slate-50'}`}>
       
       {/* Mobile App Container */}
-      <div className="w-full max-w-md h-[100dvh] bg-white dark:bg-slate-950 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 flex flex-col overflow-hidden relative text-slate-900 dark:text-slate-100 transition-colors duration-300">
+      <div className="w-full max-w-md h-full bg-white dark:bg-slate-950 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 flex flex-col overflow-hidden relative text-slate-900 dark:text-slate-100 transition-colors duration-300">
         
         {/* Paywall Modal (Only shown when explicitly triggered) */}
         {showPaywall && (
@@ -129,7 +128,7 @@ const App: React.FC = () => {
         </main>
 
         {/* Bottom Navigation */}
-        <nav className="flex-shrink-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-t border-slate-100 dark:border-slate-800 px-6 py-4 flex justify-between items-center z-50 transition-colors duration-300">
+        <nav className="flex-shrink-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-t border-slate-100 dark:border-slate-800 px-6 py-4 flex justify-between items-center z-50 transition-colors duration-300 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           
           <button 
             onClick={() => setActiveTab(AppTab.DIGEST)}
