@@ -44,6 +44,12 @@ export interface SavedInsight {
   sourceDigestDate: string;
 }
 
+export interface UserNote {
+  id: string;
+  text: string;
+  createdAt: number;
+}
+
 export interface Topic {
   id: string;
   name: string;

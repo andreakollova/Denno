@@ -1,16 +1,16 @@
 
 import React, { useEffect, useState } from 'react';
-import { DailyDigest, DigestSection, SavedInsight } from '../types';
-import { getDigests, getSavedInsights, removeInsight } from '../services/storageService';
+import { DailyDigest, DigestSection, SavedInsight, UserNote } from '../types';
+import { getDigests, getSavedInsights, removeInsight, getNotes, saveNote, deleteNote } from '../services/storageService';
 import DigestCard from '../components/DigestCard';
 import ChatModal from '../components/ChatModal';
-import { CollectionIcon, BookmarkSolidIcon, NewspaperIcon, ChevronDownIcon, ChevronUpIcon } from '../components/Icons';
+import { CollectionIcon, BookmarkSolidIcon, NewspaperIcon, ChevronDownIcon, ChevronUpIcon, PencilIcon, TrashIcon, PlusCircleIcon } from '../components/Icons';
 
 interface HistoryPageProps {
   onBack: () => void;
 }
 
-type ViewMode = 'digests' | 'saved';
+type ViewMode = 'digests' | 'saved' | 'notes';
 
 const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('digests');
@@ -23,24 +23,41 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
   const [savedInsights, setSavedInsights] = useState<SavedInsight[]>([]);
   const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
 
+  // Notes State
+  const [notes, setNotes] = useState<UserNote[]>([]);
+  const [newNoteText, setNewNoteText] = useState('');
+
   // Common State
   const [activeChatSection, setActiveChatSection] = useState<DigestSection | null>(null);
 
   useEffect(() => {
     setDigests(getDigests());
     setSavedInsights(getSavedInsights());
-  }, [viewMode]); // Reload when switching tabs
+    setNotes(getNotes());
+  }, [viewMode]); 
 
   const handleRemoveSaved = (id: string) => {
     removeInsight(id);
     setSavedInsights(prev => prev.filter(i => i.id !== id));
   };
 
+  const handleAddNote = () => {
+    if (!newNoteText.trim()) return;
+    saveNote(newNoteText);
+    setNotes(getNotes());
+    setNewNoteText('');
+  };
+
+  const handleDeleteNote = (id: string) => {
+    deleteNote(id);
+    setNotes(prev => prev.filter(n => n.id !== id));
+  };
+
   // --- DETAIL VIEW FOR DIGEST ---
   if (selectedDigest) {
     return (
       <>
-        <div className="animate-in slide-in-from-right duration-300">
+        <div className="animate-in slide-in-from-right duration-300 bg-white min-h-screen pb-24">
           <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-100 px-4 py-4 flex items-center shadow-sm">
             <button 
               onClick={() => setSelectedDigest(null)}
@@ -56,13 +73,13 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
             </div>
           </div>
           
-          <div className="px-6 py-6 pb-24">
+          <div className="px-6 py-6">
             <h1 className="text-2xl font-bold text-slate-900 leading-tight mb-6">
               {selectedDigest.mainTitle}
             </h1>
             
             {/* Busy Read Summary for History */}
-             <div className="mb-8 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+             <div className="mb-8 bg-slate-50 p-5 rounded-xl border border-slate-100">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
                   Rýchly súhrn
                 </h3>
@@ -101,26 +118,33 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
 
   // --- MAIN LIST VIEW (TABS) ---
   return (
-    <div className="px-6 py-8 animate-in fade-in pb-24">
+    <div className="px-6 py-8 animate-in fade-in pb-32">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-slate-900">Uložené</h1>
       </div>
 
-      {/* Tabs */}
-      <div className="flex bg-slate-100 p-1 rounded-2xl mb-8">
+      {/* Modern Tabs */}
+      <div className="flex bg-slate-100 p-1 rounded-xl mb-8">
         <button 
            onClick={() => setViewMode('digests')}
-           className={`flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${viewMode === 'digests' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+           className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${viewMode === 'digests' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
         >
            <NewspaperIcon className="w-4 h-4" />
            Prehľady
         </button>
         <button 
            onClick={() => setViewMode('saved')}
-           className={`flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${viewMode === 'saved' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+           className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${viewMode === 'saved' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
         >
            <BookmarkSolidIcon className="w-4 h-4" />
            Knižnica
+        </button>
+        <button 
+           onClick={() => setViewMode('notes')}
+           className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${viewMode === 'notes' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+           <PencilIcon className="w-4 h-4" />
+           Myšlienky
         </button>
       </div>
 
@@ -128,8 +152,8 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
       {viewMode === 'digests' && (
         <>
           {digests.length === 0 ? (
-            <div className="text-center py-16 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">
-              <p className="text-slate-400 font-medium">Zatiaľ žiadne denné prehľady.</p>
+            <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <p className="text-slate-400 font-medium text-sm">Zatiaľ žiadne denné prehľady.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -137,17 +161,17 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
                 <button
                   key={digest.id}
                   onClick={() => setSelectedDigest(digest)}
-                  className="w-full text-left bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-indigo-100 transition-all group relative overflow-hidden"
+                  className="w-full text-left bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-indigo-200 transition-all group relative overflow-hidden"
                 >
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 group-hover:bg-indigo-100"></div>
+                  <div className="absolute top-0 right-0 w-12 h-12 bg-indigo-50 rounded-bl-xl -mr-6 -mt-6 transition-transform group-hover:scale-150 group-hover:bg-indigo-100"></div>
                   
                   <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-3">
-                      <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md uppercase tracking-wider">
                         {new Date(digest.date).toLocaleDateString('sk-SK')}
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-slate-800 line-clamp-2 leading-tight mb-2 group-hover:text-indigo-900 transition-colors">
+                    <h3 className="text-base font-bold text-slate-900 line-clamp-2 leading-tight mb-2 group-hover:text-indigo-900 transition-colors">
                       {digest.mainTitle}
                     </h3>
                     <p className="text-slate-400 text-xs line-clamp-1 flex items-center">
@@ -166,40 +190,40 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
       {viewMode === 'saved' && (
          <>
            {savedInsights.length === 0 ? (
-             <div className="text-center py-16 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">
-               <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BookmarkSolidIcon className="w-6 h-6 text-slate-400" />
+             <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+               <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200">
+                  <BookmarkSolidIcon className="w-5 h-5 text-slate-300" />
                </div>
-               <p className="text-slate-500 font-medium">Knižnica je prázdna.</p>
-               <p className="text-xs text-slate-400 mt-2">Ukladaj si zaujímavé karty z denného prehľadu.</p>
+               <p className="text-slate-500 font-bold text-sm">Knižnica je prázdna</p>
+               <p className="text-xs text-slate-400 mt-1">Ukladaj si karty z denného prehľadu.</p>
              </div>
            ) : (
              <div className="space-y-4">
                 {savedInsights.map((item, index) => {
                   const isExpanded = expandedInsightId === item.id;
                   return (
-                    <div key={item.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div key={item.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all hover:shadow-md">
                        <button
                          onClick={() => setExpandedInsightId(isExpanded ? null : item.id)}
-                         className="w-full flex items-center justify-between p-4 text-left bg-white hover:bg-slate-50/50 transition-colors"
+                         className="w-full flex items-center justify-between p-4 text-left bg-white hover:bg-slate-50 transition-colors"
                        >
                           <div className="flex-1 pr-4">
-                             <div className="flex items-center gap-2 mb-1">
+                             <div className="flex items-center gap-2 mb-1.5">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                                   {new Date(item.sourceDigestDate).toLocaleDateString('sk-SK')}
                                 </span>
                              </div>
-                             <h3 className={`font-bold text-slate-800 text-sm leading-snug ${isExpanded ? 'text-indigo-600' : ''}`}>
+                             <h3 className={`font-bold text-slate-900 text-sm leading-snug ${isExpanded ? 'text-indigo-600' : ''}`}>
                                {item.section.title}
                              </h3>
                           </div>
-                          <div className="text-slate-400 flex-shrink-0 ml-2">
-                             {isExpanded ? <ChevronUpIcon className="w-5 h-5" /> : <ChevronDownIcon className="w-5 h-5" />}
+                          <div className="text-slate-400 flex-shrink-0 ml-2 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                             {isExpanded ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
                           </div>
                        </button>
 
                        {isExpanded && (
-                          <div className="p-2 bg-slate-50 border-t border-slate-100 animate-in slide-in-from-top-2">
+                          <div className="p-3 bg-slate-50 border-t border-slate-100 animate-in slide-in-from-top-2">
                               {/* Embed the DigestCard without default margins */}
                               <DigestCard 
                                  section={item.section} 
@@ -217,6 +241,64 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
              </div>
            )}
          </>
+      )}
+
+      {/* View: User Notes (Myšlienky) */}
+      {viewMode === 'notes' && (
+        <>
+           {/* Add Note Input */}
+           <div className="mb-6 bg-white rounded-xl border border-slate-200 p-4 shadow-sm focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2 block">Nová myšlienka</label>
+              <textarea
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
+                placeholder="Zapíš si postreh, nápad alebo dôležitú informáciu..."
+                className="w-full text-sm text-slate-700 placeholder-slate-400 bg-transparent outline-none resize-none min-h-[80px]"
+              />
+              <div className="flex justify-end mt-2">
+                 <button 
+                   onClick={handleAddNote}
+                   disabled={!newNoteText.trim()}
+                   className="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                 >
+                   <PlusCircleIcon className="w-4 h-4" />
+                   Uložiť
+                 </button>
+              </div>
+           </div>
+
+           {/* Notes List */}
+           {notes.length === 0 ? (
+             <div className="text-center py-12">
+               <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <PencilIcon className="w-5 h-5 text-slate-300" />
+               </div>
+               <p className="text-slate-400 text-sm">Zatiaľ žiadne poznámky.</p>
+             </div>
+           ) : (
+             <div className="space-y-4">
+               {notes.map((note) => (
+                 <div key={note.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all group relative">
+                    <div className="flex justify-between items-start mb-3">
+                       <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">
+                         {new Date(note.createdAt).toLocaleDateString('sk-SK')}
+                       </span>
+                       <button 
+                         onClick={() => handleDeleteNote(note.id)}
+                         className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                         title="Vymazať"
+                       >
+                         <TrashIcon className="w-4 h-4" />
+                       </button>
+                    </div>
+                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
+                      {note.text}
+                    </p>
+                 </div>
+               ))}
+             </div>
+           )}
+        </>
       )}
 
       {activeChatSection && (

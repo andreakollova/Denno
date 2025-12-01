@@ -1,10 +1,11 @@
 
-import { DailyDigest, UserProfile, PersonaType, SavedInsight, DigestSection } from '../types';
+import { DailyDigest, UserProfile, PersonaType, SavedInsight, DigestSection, UserNote } from '../types';
 
 const TOPICS_KEY = 'ai_digest_topics';
 const DIGESTS_KEY = 'ai_digest_history';
 const PROFILE_KEY = 'ai_digest_profile';
 const COLLECTION_KEY = 'ai_digest_collection';
+const NOTES_KEY = 'ai_digest_notes';
 
 export const getSelectedTopicIds = (): string[] => {
   const stored = localStorage.getItem(TOPICS_KEY);
@@ -81,6 +82,29 @@ export const isInsightSaved = (sectionTitle: string, sourceDigestId: string): bo
   const current = getSavedInsights();
   const id = `${sourceDigestId}-${sectionTitle.substring(0, 10).replace(/\s+/g, '')}`;
   return current.some(i => i.id === id);
+};
+
+// --- USER NOTES (MYŠLIENKY) ---
+
+export const getNotes = (): UserNote[] => {
+  const stored = localStorage.getItem(NOTES_KEY);
+  return stored ? JSON.parse(stored) : [];
+};
+
+export const saveNote = (text: string) => {
+  const current = getNotes();
+  const newNote: UserNote = {
+    id: Date.now().toString(),
+    text,
+    createdAt: Date.now()
+  };
+  localStorage.setItem(NOTES_KEY, JSON.stringify([newNote, ...current]));
+};
+
+export const deleteNote = (id: string) => {
+  const current = getNotes();
+  const updated = current.filter(n => n.id !== id);
+  localStorage.setItem(NOTES_KEY, JSON.stringify(updated));
 };
 
 // --- USER PROFILE ---

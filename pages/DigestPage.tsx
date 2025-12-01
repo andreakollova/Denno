@@ -239,14 +239,14 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-150px)] px-6 text-center animate-in fade-in duration-700">
-        <div className="relative w-24 h-24 mb-8">
+        <div className="relative w-20 h-20 mb-8">
           <div className="absolute top-0 left-0 w-full h-full border-4 border-indigo-200 rounded-full animate-ping opacity-25"></div>
           <div className="absolute top-0 left-0 w-full h-full border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
           <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
-            <SparklesIcon className="w-8 h-8 text-indigo-600 animate-pulse" />
+            <SparklesIcon className="w-6 h-6 text-indigo-600 animate-pulse" />
           </div>
         </div>
-        <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight">Pripravujem váš prehľad</h3>
+        <h3 className="text-xl font-bold text-slate-800 mb-3 tracking-tight">Pripravujem váš prehľad</h3>
         <p className={`text-sm text-slate-500 font-medium transition-all duration-700 ease-in-out h-6 transform ${fadeProp}`}>
             {loadingStep}
         </p>
@@ -275,19 +275,19 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
           </p>
           
           {error && (
-            <div className="mb-8 bg-red-50 text-red-600 p-4 rounded-2xl text-sm border border-red-100 shadow-sm">
+            <div className="mb-8 bg-red-50 text-red-600 p-4 rounded-xl text-sm border border-red-100 shadow-sm">
               {error}
             </div>
           )}
 
           <button 
             onClick={handleGenerate}
-            className="group relative w-full bg-slate-900 text-white font-bold py-5 px-8 rounded-2xl shadow-xl shadow-indigo-500/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
+            className="group relative w-full bg-slate-900 text-white font-bold py-5 px-8 rounded-xl shadow-xl shadow-indigo-500/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <div className="relative flex items-center justify-center gap-3">
               <SparklesIcon className="w-5 h-5 text-indigo-300 group-hover:text-white transition-colors" />
-              <span>Vygenerovať Denný Prehľad</span>
+              <span>Vygenerovať denný prehľad</span>
             </div>
           </button>
           
@@ -301,56 +301,95 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
 
   return (
     <>
+      <style>
+        {`
+          @keyframes subtleFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+          .animate-subtle-flow {
+            background-size: 200% 200%;
+            animation: subtleFlow 15s ease infinite;
+          }
+        `}
+      </style>
       <div className="animate-in fade-in duration-500">
         
         {/* Scrollable Content */}
-        <div className="p-6 space-y-8 pb-32">
+        <div className="px-6 py-6 pb-32 space-y-10">
             
-            {/* Main Title - Moved here from header */}
-            <h1 className="text-2xl font-black text-slate-900 leading-tight">
-                {digest.mainTitle}
-            </h1>
+            {/* Header: Date & Title */}
+            <div>
+               <div className="flex items-center gap-2 mb-1">
+                 <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                 <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest">{formattedDate}</p>
+               </div>
+               <h1 className="text-3xl font-black text-slate-900 leading-none tracking-tight">
+                  {digest.mainTitle}
+               </h1>
+            </div>
 
-            {/* Feature 7: One Sentence */}
-            <div className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white p-5 rounded-3xl shadow-xl shadow-indigo-900/20 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-                <div className="relative z-10">
-                    <div className="flex items-start gap-3">
-                        <SparklesIcon className="w-5 h-5 text-indigo-300 flex-shrink-0 mt-1" />
-                        <p className="text-base font-medium leading-relaxed italic">
+            {/* Feature 7: One Sentence Overview (Hero Card) */}
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-900 animate-subtle-flow text-white shadow-xl shadow-indigo-900/10">
+                {/* Subtle light effects */}
+                <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-[60px] -mt-10 -mr-10"></div>
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[50px] -mb-10 -ml-10"></div>
+                
+                <div className="relative z-10 p-6 sm:p-8">
+                    <div className="flex items-center gap-2 mb-4 opacity-70">
+                        <SparklesIcon className="w-4 h-4 text-indigo-200" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Myšlienka dňa</span>
+                    </div>
+                    {/* Removed italic class here */}
+                    <p className="text-lg sm:text-xl font-medium leading-relaxed font-serif">
                         "{digest.oneSentenceOverview}"
-                        </p>
-                    </div>
+                    </p>
                 </div>
             </div>
 
-            {/* Feature 8: Busy Read (Top 3) */}
-            <div>
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 pl-1 flex items-center gap-2">
-                    <span className="w-8 h-px bg-slate-200"></span>
-                    V skratke (Busy Mode)
-                </h3>
-                <div className="grid gap-3">
-                {digest.busyRead.map((item, i) => (
-                    <div key={i} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4 hover:border-indigo-100 transition-colors">
-                        <div className="bg-indigo-50 text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5 shadow-inner">
-                            {i+1}
+            {/* Feature 8: Busy Read (Briefing Card) */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-slate-50 border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                    <span className="text-lg">⚡</span>
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                        V skratke
+                    </h3>
+                </div>
+                
+                <div className="divide-y divide-slate-100">
+                    {digest.busyRead.map((item, i) => (
+                        <div key={i} className="p-5 hover:bg-slate-50 transition-colors">
+                            <div className="flex gap-3">
+                                <span className="font-bold text-indigo-600 text-sm mt-0.5">{i+1}.</span>
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-900 leading-snug mb-1">
+                                        {item.title}
+                                    </h4>
+                                    <p className="text-xs text-slate-500 leading-relaxed">
+                                        {item.summary}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <h4 className="text-sm font-bold text-slate-900 leading-snug mb-1.5">{item.title}</h4>
-                            <p className="text-xs text-slate-500 leading-relaxed">{item.summary}</p>
-                        </div>
-                    </div>
-                ))}
+                    ))}
                 </div>
             </div>
 
-            {/* Detailed Sections */}
-            <div>
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 pl-1 flex items-center gap-2">
-                    <span className="w-8 h-px bg-slate-200"></span>
-                    Detailný prehľad
-                </h3>
+            {/* Detailed Sections Divider */}
+            <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className="w-full border-t border-slate-200"></div>
+                </div>
+                <div className="relative flex justify-center">
+                    <span className="bg-slate-50 px-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                        Hlboký ponor
+                    </span>
+                </div>
+            </div>
+
+            {/* Detailed Cards */}
+            <div className="space-y-6">
                 {digest.sections.map((section, index) => (
                     <DigestCard 
                       key={index} 
@@ -364,31 +403,31 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
                 ))}
             </div>
 
-            {/* Buttons Action Area */}
-            <div className="pt-4 pb-8 flex flex-col items-center gap-4">
+            {/* Action Buttons */}
+            <div className="pt-4 flex flex-col gap-4">
                 
-                {/* Generate More Button - Only shows if we have source articles */}
+                {/* Generate More Button */}
                 {digest.sourceArticles && (
                 <button 
                     onClick={handleGenerateMore}
                     disabled={loadingMore}
-                    className="w-full bg-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-indigo-200 flex items-center justify-center gap-3 transition-transform active:scale-95 disabled:opacity-70 disabled:active:scale-100"
+                    className="w-full bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50"
                 >
                     {loadingMore ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                     ) : (
                     <PlusCircleIcon className="w-5 h-5" />
                     )}
-                    <span>{loadingMore ? 'Generujem...' : 'Generovať viac'}</span>
+                    <span>{loadingMore ? 'Hľadám ďalšie témy...' : 'Načítať ďalšie správy'}</span>
                 </button>
                 )}
 
                 <button 
                     onClick={handleReset}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors text-xs font-bold uppercase tracking-wide"
+                    className="w-full py-4 text-xs font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
                 >
-                    <RefreshIcon className="w-4 h-4" />
-                    Začať odznova (Reset)
+                    <RefreshIcon className="w-3 h-3" />
+                    Vymazať a začať odznova
                 </button>
             </div>
         </div>
@@ -403,14 +442,14 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
 
       {/* Encyclopedia Modal */}
       {encyclopediaTerm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={closeEncyclopedia}></div>
-           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+           <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
               
               <div className="bg-indigo-600 p-4 flex justify-between items-start">
                  <div className="flex items-center gap-2 text-white">
                     <BookIcon className="w-5 h-5 text-indigo-200" />
-                    <h3 className="font-bold text-lg">AI Encyklopédia</h3>
+                    <h3 className="font-bold text-lg">AI encyklopédia</h3>
                  </div>
                  <button onClick={closeEncyclopedia} className="text-white/70 hover:text-white">
                     <XIcon className="w-5 h-5" />

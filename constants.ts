@@ -35,11 +35,11 @@ export const AVAILABLE_TOPICS: Topic[] = [
     ]
   },
 
-  // --- Kategória: Veda a Budúcnosť ---
+  // --- Kategória: Veda a budúcnosť ---
   {
     id: 'medicine',
     name: 'Medicína a medicínske tech',
-    category: 'Veda a Budúcnosť',
+    category: 'Veda a budúcnosť',
     rssUrls: [
       'https://www.medicalnewstoday.com/feed',
       'https://www.sciencedaily.com/rss/health_medicine.xml',
@@ -49,7 +49,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'new_ai_models',
     name: 'Nové AI modely (SOTA)',
-    category: 'Veda a Budúcnosť',
+    category: 'Veda a budúcnosť',
     rssUrls: [
       'https://huggingface.co/blog/feed.xml',
       'https://simonwillison.net/atom/ab/',
@@ -59,7 +59,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'science',
     name: 'Veda a inovácie',
-    category: 'Veda a Budúcnosť',
+    category: 'Veda a budúcnosť',
     rssUrls: [
       'https://www.sciencedaily.com/rss/top_news.xml',
       'https://www.wired.com/feed/category/science/latest/rss'
@@ -68,7 +68,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'quantum',
     name: 'Kvantové počítanie',
-    category: 'Veda a Budúcnosť',
+    category: 'Veda a budúcnosť',
     rssUrls: [
       'https://thequantuminsider.com/feed/',
       'https://www.sciencedaily.com/rss/computers_math/quantum_computers.xml'
@@ -77,7 +77,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'ar_vr',
     name: 'AR/VR a spatial computing',
-    category: 'Veda a Budúcnosť',
+    category: 'Veda a budúcnosť',
     rssUrls: [
       'https://uploadvr.com/feed',
       'https://www.roadtovr.com/feed/'
@@ -86,7 +86,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'robotics',
     name: 'Robotika',
-    category: 'Veda a Budúcnosť',
+    category: 'Veda a budúcnosť',
     rssUrls: [
       'https://spectrum.ieee.org/rss/robotics/fulltext',
       'https://www.sciencedaily.com/rss/computers_math/robotics.xml'
@@ -95,7 +95,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'space',
     name: 'Vesmír a letectvo',
-    category: 'Veda a Budúcnosť',
+    category: 'Veda a budúcnosť',
     rssUrls: [
       'https://www.space.com/feeds/all',
       'https://spacenews.com/feed/'
@@ -104,7 +104,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'renewable_energy',
     name: 'Obnoviteľné zdroje',
-    category: 'Veda a Budúcnosť',
+    category: 'Veda a budúcnosť',
     rssUrls: [
       'https://cleantechnica.com/feed/',
       'https://www.renewableenergyworld.com/feed/'
@@ -113,18 +113,18 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'food_tech',
     name: 'Food tech',
-    category: 'Veda a Budúcnosť',
+    category: 'Veda a budúcnosť',
     rssUrls: [
       'https://thespoon.tech/feed/',
       'https://www.foodnavigator.com/RSS/Feed/LN/Daily-News'
     ]
   },
 
-  // --- Kategória: Šport a Zábava ---
+  // --- Kategória: Šport a zábava ---
   {
     id: 'sport_repre',
     name: 'Slovenská reprezentácia',
-    category: 'Šport a Zábava',
+    category: 'Šport a zábava',
     rssUrls: [
       'https://sport.aktuality.sk/rss/reprezentacia/',
       'https://sport.sme.sk/rss/rss.xml'
@@ -133,7 +133,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'sport_football',
     name: 'Futbal',
-    category: 'Šport a Zábava',
+    category: 'Šport a zábava',
     rssUrls: [
       'https://sport.aktuality.sk/rss/futbal/',
       'https://www.goal.com/feeds/en/news',
@@ -143,7 +143,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'sport_hockey',
     name: 'Hokej',
-    category: 'Šport a Zábava',
+    category: 'Šport a zábava',
     rssUrls: [
       'https://sport.aktuality.sk/rss/hokej/',
       'https://www.nhl.com/rss/news',
@@ -153,7 +153,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'sport_basketball',
     name: 'Basketbal',
-    category: 'Šport a Zábava',
+    category: 'Šport a zábava',
     rssUrls: [
       'https://www.nba.com/rss/nba_rss.xml',
       'https://www.eurohoops.net/feed/',
@@ -163,7 +163,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'f1_motorsport',
     name: 'F1 a motoršport',
-    category: 'Šport a Zábava',
+    category: 'Šport a zábava',
     rssUrls: [
       'https://www.autosport.com/rss/feed/f1',
       'https://www.motorsport.com/rss/f1/news/'
@@ -172,7 +172,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'gaming',
     name: 'Gaming a e-športy',
-    category: 'Šport a Zábava',
+    category: 'Šport a zábava',
     rssUrls: [
       'https://kotaku.com/rss',
       'https://www.polygon.com/rss/index.xml',
@@ -182,7 +182,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'womens_sports',
     name: 'Ženy v športe',
-    category: 'Šport a Zábava',
+    category: 'Šport a zábava',
     rssUrls: [
       'https://justwomenssports.com/feed/',
       'https://feeds.theguardian.com/theguardian/sport/womens-sport/rss'
@@ -192,7 +192,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'sports_biz',
     name: 'Športový biznis a tech',
-    category: 'Šport a Zábava',
+    category: 'Šport a zábava',
     rssUrls: [
       'https://www.sportspromedia.com/feed/',
       'https://frontofficesports.com/feed/',
@@ -204,7 +204,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'ai_tech',
     name: 'Všeobecné AI a tech',
-    category: 'AI & Tech Core',
+    category: 'AI a tech core',
     rssUrls: [
       'https://techcrunch.com/category/artificial-intelligence/feed/',
       'https://www.theverge.com/rss/index.xml'
@@ -213,7 +213,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'cybersecurity',
     name: 'Kybernetická bezpečnosť',
-    category: 'AI & Tech Core',
+    category: 'AI a tech core',
     rssUrls: [
       'https://krebsonsecurity.com/feed/',
       'https://thehackernews.com/rss.xml'
@@ -222,7 +222,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'consumer_tech',
     name: 'Spotrebná elektronika',
-    category: 'AI & Tech Core',
+    category: 'AI a tech core',
     rssUrls: [
       'https://www.engadget.com/rss.xml',
       'https://www.wired.com/feed/category/gear/latest/rss'
@@ -231,7 +231,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'smart_home',
     name: 'Smart home a IoT',
-    category: 'AI & Tech Core',
+    category: 'AI a tech core',
     rssUrls: [
       'https://staceyoniot.com/feed/',
       'https://www.iotworldtoday.com/rss.xml'
@@ -240,7 +240,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'business_startups',
     name: 'Biznis a startupy',
-    category: 'Biznis & Práca',
+    category: 'Biznis a práca',
     rssUrls: [
       'https://feeds.feedburner.com/entrepreneur/latest',
       'http://feeds.feedburner.com/TechCrunch/startups'
@@ -249,7 +249,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'economy',
     name: 'Ekonomika a trhy',
-    category: 'Biznis & Práca',
+    category: 'Biznis a práca',
     rssUrls: [
       'https://www.economist.com/finance-and-economics/rss.xml',
       'https://feeds.bloomberg.com/economics/news.xml'
@@ -258,7 +258,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'investing',
     name: 'Osobné financie a investovanie',
-    category: 'Biznis & Práca',
+    category: 'Biznis a práca',
     rssUrls: [
       'https://www.kiplinger.com/feed',
       'https://www.investopedia.com/feedbuilder/feed/public/reviews_feed'
@@ -267,17 +267,16 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'creator_economy',
     name: 'Creator economy',
-    category: 'Biznis & Práca',
+    category: 'Biznis a práca',
     rssUrls: [
       'https://techcrunch.com/tag/creator-economy/feed/',
       'https://www.theinformation.com/rss/creator-economy.xml'
     ]
   },
-  // "Budúcnosť práce" REMOVED
   {
     id: 'productivity',
     name: 'Produktivita a work trends',
-    category: 'Biznis & Práca',
+    category: 'Biznis a práca',
     rssUrls: [
       'https://lifehacker.com/rss',
       'https://zenhabits.net/feed/'
@@ -286,7 +285,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'hr_leadership',
     name: 'HR a leadership',
-    category: 'Biznis & Práca',
+    category: 'Biznis a práca',
     rssUrls: [
       'https://hbr.org/feeds/rss',
       'https://www.shrm.org/feed'
@@ -295,7 +294,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'real_estate',
     name: 'Reality a smart cities',
-    category: 'Biznis & Práca',
+    category: 'Biznis a práca',
     rssUrls: [
       'https://www.smartcitiesworld.net/rss/news',
       'https://www.inman.com/feed/'
@@ -413,19 +412,19 @@ export const PERSONA_PROMPTS: Record<PersonaType, string> = {
 // UI Descriptions for the User (Translated to Slovak)
 export const PERSONA_UI_DATA: Record<PersonaType, { label: string, description: string }> = {
   [PersonaType.DEFAULT]: {
-    label: "Vyvážený (Default)",
-    description: "Profesionálny, stručný a jasný prehľad dňa."
+    label: "Vyvážený redaktor",
+    description: "Profesionálny, stručný a jasný prehľad dňa. Ideálny pre každodenné čítanie."
   },
   [PersonaType.CEO]: {
-    label: "CEO / Biznis",
+    label: "Biznisový stratég (CEO)",
     description: "Zamerané na ROI, trhové dopady a stratégiu. Žiadna omáčka, len fakty."
   },
   [PersonaType.ELI5]: {
-    label: "Vysvetli ako 5-ročnému",
+    label: "Kamarát (jednoducho)",
     description: "Jednoduché analógie, žiadny odborný žargón. Hravé a pochopiteľné pre každého."
   },
   [PersonaType.NERD]: {
-    label: "Technický Expert",
+    label: "Technický analytik",
     description: "Hlboký ponor do technických detailov, špecifikácií a metodológie."
   }
 };

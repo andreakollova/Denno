@@ -120,12 +120,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
       ></div>
 
       {/* Modal Content */}
-      <div className="bg-white w-full max-w-md h-[85vh] sm:h-[800px] sm:max-h-[90vh] sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col pointer-events-auto transform transition-transform duration-300 ease-out translate-y-0 relative overflow-hidden animate-in slide-in-from-bottom-10">
+      <div className="bg-white w-full max-w-md h-[85vh] sm:h-[800px] sm:max-h-[90vh] sm:rounded-xl rounded-t-xl shadow-2xl flex flex-col pointer-events-auto transform transition-transform duration-300 ease-out translate-y-0 relative overflow-hidden animate-in slide-in-from-bottom-10">
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-white z-10 shadow-sm">
           <div>
-            <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">AI Asistent</span>
+            <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">AI asistent</span>
             <h3 className="font-bold text-slate-900 line-clamp-1 text-sm">{section.title}</h3>
           </div>
           <button 
@@ -151,7 +151,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
               </div>
               
               <div className={`
-                max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm
+                max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed shadow-sm
                 ${msg.role === 'user' 
                   ? 'bg-indigo-600 text-white rounded-tr-none' 
                   : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'}
@@ -198,7 +198,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Opýtaj sa na detaily..."
-              className="flex-1 bg-slate-100 text-slate-900 placeholder-slate-500 border-0 rounded-full px-5 py-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none shadow-inner"
+              className="flex-1 bg-slate-100 text-slate-900 placeholder-slate-500 border-0 rounded-xl px-5 py-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none shadow-inner"
               disabled={isLoading}
               autoFocus
             />
@@ -206,7 +206,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
               onClick={handleSend}
               disabled={!inputValue.trim() || isLoading}
               className={`
-                p-3 rounded-full flex-shrink-0 transition-all duration-200
+                p-3 rounded-xl flex-shrink-0 transition-all duration-200
                 ${!inputValue.trim() || isLoading 
                   ? 'bg-slate-100 text-slate-300' 
                   : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200 hover:scale-105 active:scale-95'}

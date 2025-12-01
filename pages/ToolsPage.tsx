@@ -41,7 +41,10 @@ const TOPIC_CATEGORIES = {
   ]
 };
 
+// Comprehensive stop list to filter out common language and generic news terms
+// This ensures the word cloud focuses on concepts, foreign terms, and specific entities.
 const SLOVAK_STOP_WORDS = new Set([
+  // Grammar & Function words
   'a', 'aby', 'aj', 'ako', 'ak', 'ani', 'asi', 'ale', 'alebo', 'bude', 'budú', 'bol', 'bola', 'bolo', 'boli', 
   'by', 'cez', 'čo', 'či', 'ďalšie', 'do', 'dnes', 'ešte', 'ho', 'hoci', 'iba', 'ich', 'iné', 'ja', 'je', 'jeho', 
   'jej', 'im', 'kam', 'kde', 'keď', 'kto', 'ktorý', 'ktorá', 'ktoré', 'ku', 'lebo', 'len', 'ma', 'mať', 'má', 
@@ -50,7 +53,20 @@ const SLOVAK_STOP_WORDS = new Set([
   'pred', 'pri', 'proti', 'prvý', 'prvá', 'prvé', 's', 'sa', 'si', 'som', 'svoj', 'svoja', 'svoje', 'sme', 
   'sú', 'tak', 'takže', 'tam', 'ten', 'tá', 'to', 'tí', 'tie', 'tento', 'táto', 'toto', 'teda', 'tebe', 
   'tebou', 'tvoj', 'tvoja', 'tvoje', 'tu', 'ty', 'už', 'v', 'vám', 'váš', 'vaša', 'vaše', 'viac', 'však', 
-  'všetko', 'všetci', 'vy', 'z', 'za', 'zo', 'že', 'článku', 'podľa', 'medzi', 'veľmi', 'roku', 'roka'
+  'všetko', 'všetci', 'vy', 'z', 'za', 'zo', 'že',
+  
+  // Common Generic News Nouns (To filter out "noise" and keep "concepts")
+  'rok', 'roku', 'rokov', 'článku', 'podľa', 'veľmi', 'vláda', 'vlády', 'štát', 'štátu', 'polícia', 'slovensko', 
+  'slovenska', 'bratislava', 'fico', 'pellegrini', 'strana', 'hnutie', 'smer', 'hlas', 'ps', 'sas', 'kdh', 
+  'parlament', 'prezident', 'minister', 'premiér', 'človek', 'ľudia', 'ľudí', 'milión', 'miliónov', 'miliardy', 
+  'percent', 'percentá', 'cena', 'ceny', 'trh', 'trhu', 'vývoj', 'nárast', 'pokles', 'správa', 'správy', 
+  'informácie', 'situácia', 'problém', 'riešenie', 'návrh', 'zákon', 'opatrenia', 'pomoc', 'podpora', 
+  'spoločnosť', 'firma', 'firmy', 'projekt', 'program', 'cieľ', 'plán', 'výsledok', 'úspech', 'svet', 
+  'krajina', 'krajiny', 'mesto', 'obce', 'región', 'systém', 'proces', 'úroveň', 'obdobie', 'čas', 'deň', 
+  'týždeň', 'mesiac', 'práca', 'život', 'domov', 'škola', 'deti', 'rodičia', 'zdravie', 'nemocnica', 
+  'pacient', 'lieky', 'auto', 'cesta', 'doprava', 'vlaky', 'počasie', 'teplota', 'voda', 'vzduch', 'voľby',
+  'bude', 'majú', 'môžu', 'tieto', 'týchto', 'sveta', 'proti', 'medzi', 'veľký', 'malý', 'dobrý', 'zlý',
+  'vysoký', 'nízky', 'nový', 'starý', 'posledný', 'prvý', 'druhý', 'tretí', 'hlavný', 'dôležitý', 'známy'
 ]);
 
 const ToolsPage: React.FC = () => {
@@ -79,10 +95,11 @@ const ToolsPage: React.FC = () => {
     const digests = getDigests();
     if (digests.length > 0) {
       const today = digests[0];
-      // Collect text from today's digest
-      let text = today.mainTitle + " " + today.oneSentenceOverview + " ";
+      // Collect text from today's digest sections (titles, whatIsNew, keyPoints)
+      // We purposefully skip the summary to get more specific terminology
+      let text = "";
       today.sections.forEach(s => {
-        text += s.title + " " + s.whatIsNew + " " + s.whatChanged + " " + s.tags.join(" ") + " ";
+        text += s.title + " " + s.whatIsNew + " " + s.keyPoints.join(" ") + " ";
       });
 
       // Tokenize
@@ -93,8 +110,10 @@ const ToolsPage: React.FC = () => {
       const counts: Record<string, number> = {};
       
       words.forEach(w => {
-        // Filter: Must be longer than 4 chars and NOT in stop words
-        // This heuristic usually catches more complex/interesting nouns
+        // Filter: 
+        // 1. Must be longer than 4 chars (skips short filler)
+        // 2. Must NOT be in the massive stop list
+        // 3. Must not be a number
         if (w.length > 4 && !SLOVAK_STOP_WORDS.has(w) && !/^\d+$/.test(w)) {
            counts[w] = (counts[w] || 0) + 1;
         }
@@ -194,13 +213,13 @@ const ToolsPage: React.FC = () => {
 
       {/* Feature 42: Word Cloud */}
       {wordCloud.length > 0 && (
-         <div className="mb-8 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+         <div className="mb-8 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center gap-2 mb-4">
               <CloudIcon className="w-5 h-5 text-indigo-500" />
               <h2 className="font-bold text-lg text-slate-900">Trendy týždňa</h2>
             </div>
             <p className="text-xs text-slate-400 mb-4">
-               Klikni na slovo pre rýchle vysvetlenie pojmu.
+               Kľúčové koncepty a pojmy z tvojho posledného prehľadu.
             </p>
             <div className="flex flex-wrap gap-x-3 gap-y-2 justify-center items-center py-2">
                {wordCloud.map((item, idx) => {
@@ -223,11 +242,11 @@ const ToolsPage: React.FC = () => {
       )}
 
       {/* Feature 44: Fast Learning Packs */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mb-8">
         <div className="bg-slate-900 p-6 text-white">
           <div className="flex items-center gap-2 mb-2">
             <AcademicIcon className="w-5 h-5 text-indigo-300" />
-            <h2 className="font-bold text-lg">AI Rýchlokurzy</h2>
+            <h2 className="font-bold text-lg">AI rýchlokurzy</h2>
           </div>
           <p className="text-slate-400 text-sm">
             Zadaj tému a získaj štruktúrovaný "10-minútový rýchlokurz".
@@ -242,12 +261,12 @@ const ToolsPage: React.FC = () => {
                 placeholder="napr. Kvantová fyzika, NFT..."
                 value={learnTopic}
                 onChange={(e) => setLearnTopic(e.target.value)}
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
               />
                <button 
                 onClick={() => handleCreateLearningPack()}
                 disabled={learningLoading || !learnTopic}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-xl disabled:opacity-50 hover:bg-indigo-700 transition-colors font-bold text-sm"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 hover:bg-indigo-700 transition-colors font-bold text-sm"
               >
                 {learningLoading ? '...' : 'Vytvoriť'}
               </button>
@@ -306,7 +325,7 @@ const ToolsPage: React.FC = () => {
                <div className="space-y-6">
                    
                    {/* 1. Definition */}
-                   <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100">
+                   <div className="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100">
                       <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wide mb-2">Definícia</h3>
                       <p className="text-lg font-bold text-slate-900">{learningPack.definition}</p>
                    </div>
@@ -325,7 +344,7 @@ const ToolsPage: React.FC = () => {
                    </div>
 
                    {/* 3. History */}
-                   <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                   <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">História v skratke</h3>
                        <p className="text-sm text-slate-600 leading-relaxed">{learningPack.history}</p>
                    </div>
@@ -337,8 +356,8 @@ const ToolsPage: React.FC = () => {
                    </div>
 
                    {/* 5. Quiz */}
-                   <div className="bg-slate-900 text-white p-5 rounded-2xl">
-                       <h3 className="text-xs font-bold text-indigo-300 uppercase tracking-wide mb-2">Rýchly Kvíz</h3>
+                   <div className="bg-slate-900 text-white p-5 rounded-xl">
+                       <h3 className="text-xs font-bold text-indigo-300 uppercase tracking-wide mb-2">Rýchly kvíz</h3>
                        <p className="font-medium mb-4">{learningPack.quizQuestion}</p>
                        <div className="text-xs text-white/50 text-center uppercase tracking-widest border-t border-white/10 pt-4">
                           Odpovedz si sám pre seba :)
@@ -358,7 +377,7 @@ const ToolsPage: React.FC = () => {
       </div>
 
       {/* Explain Link Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mb-8">
         <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
           <div className="flex items-center gap-2 mb-2">
             <LinkIcon className="w-5 h-5 text-indigo-100" />
@@ -376,12 +395,12 @@ const ToolsPage: React.FC = () => {
               placeholder="https://..."
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
             />
             <button 
               onClick={handleExplain}
               disabled={loading || !url}
-              className="bg-slate-900 text-white p-3 rounded-xl disabled:opacity-50 hover:bg-slate-800 transition-colors"
+              className="bg-slate-900 text-white p-3 rounded-lg disabled:opacity-50 hover:bg-slate-800 transition-colors"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -395,7 +414,7 @@ const ToolsPage: React.FC = () => {
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 animate-in slide-in-from-bottom-2">
               <div className="flex items-center gap-2 mb-3">
                 <BotIcon className="w-4 h-4 text-indigo-600" />
-                <span className="text-xs font-bold text-slate-400 uppercase">AI Zhrnutie</span>
+                <span className="text-xs font-bold text-slate-400 uppercase">AI zhrnutie</span>
               </div>
               <div className="prose prose-sm text-slate-700 leading-relaxed">
                 <ReactMarkdown>{result}</ReactMarkdown>
@@ -409,12 +428,12 @@ const ToolsPage: React.FC = () => {
       {defTerm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={closeDefModal}></div>
-           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+           <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
               
               <div className="bg-indigo-600 p-4 flex justify-between items-start">
                  <div className="flex items-center gap-2 text-white">
                     <BookIcon className="w-5 h-5 text-indigo-200" />
-                    <h3 className="font-bold text-lg">AI Slovník</h3>
+                    <h3 className="font-bold text-lg">AI slovník</h3>
                  </div>
                  <button onClick={closeDefModal} className="text-white/70 hover:text-white">
                     <XIcon className="w-5 h-5" />
