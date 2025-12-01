@@ -1,4 +1,6 @@
+
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { DigestSection } from '../types';
 import { createChatSession } from '../services/geminiService';
 import { SendIcon, XIcon, UserIcon, BotIcon } from './Icons';
@@ -24,14 +26,23 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
 
   useEffect(() => {
     // Initialize chat session
-    chatSessionRef.current = createChatSession(section);
-    
-    // Add initial greeting
-    setMessages([{
-      id: 'init',
-      role: 'model',
-      text: `Ahoj! Zaujala ťa téma "${section.title}"? Rád ti o nej poviem viac alebo vysvetlím detaily.`
-    }]);
+    try {
+      chatSessionRef.current = createChatSession(section);
+      
+      // Add initial greeting
+      setMessages([{
+        id: 'init',
+        role: 'model',
+        text: `Ahoj! Zaujala ťa téma "${section.title}"? Rád ti o nej poviem viac alebo vysvetlím detaily.`
+      }]);
+    } catch (e) {
+      console.error("Failed to initialize chat session", e);
+      setMessages([{
+        id: 'error',
+        role: 'model',
+        text: 'Nepodarilo sa inicializovať chat. Skontrolujte prosím pripojenie.'
+      }]);
+    }
   }, [section]);
 
   useEffect(() => {
@@ -82,7 +93,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
         }
       }
     } catch (error) {
-      console.error("Chat error:", error);
+      console.error("Chat streaming error:", error);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'model',
@@ -101,18 +112,18 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center pointer-events-none">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm pointer-events-auto transition-opacity"
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm pointer-events-auto transition-opacity animate-in fade-in duration-200"
         onClick={onClose}
       ></div>
 
       {/* Modal Content */}
-      <div className="bg-white w-full max-w-md h-[85vh] sm:h-[800px] sm:max-h-[90vh] sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col pointer-events-auto transform transition-transform duration-300 ease-out translate-y-0 relative overflow-hidden">
+      <div className="bg-white w-full max-w-md h-[85vh] sm:h-[800px] sm:max-h-[90vh] sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col pointer-events-auto transform transition-transform duration-300 ease-out translate-y-0 relative overflow-hidden animate-in slide-in-from-bottom-10">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-white z-10">
+        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-white z-10 shadow-sm">
           <div>
             <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">AI Asistent</span>
             <h3 className="font-bold text-slate-900 line-clamp-1 text-sm">{section.title}</h3>
@@ -130,22 +141,48 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
           {messages.map((msg) => (
             <div 
               key={msg.id} 
-              className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+              className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
             >
               <div className={`
-                flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center
+                flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm
                 ${msg.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600 border border-slate-200'}
               `}>
                 {msg.role === 'user' ? <UserIcon className="w-5 h-5" /> : <BotIcon className="w-5 h-5" />}
               </div>
               
               <div className={`
-                max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm whitespace-pre-wrap
+                max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm
                 ${msg.role === 'user' 
                   ? 'bg-indigo-600 text-white rounded-tr-none' 
                   : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'}
               `}>
-                {msg.text || (isLoading && msg.id === messages[messages.length-1].id ? <span className="animate-pulse">...</span> : '')}
+                {msg.text ? (
+                  <div className={`markdown-content ${msg.role === 'user' ? 'text-white' : 'text-slate-800'}`}>
+                    <ReactMarkdown
+                      components={{
+                        strong: ({node, ...props}) => <strong className="font-bold text-inherit" {...props} />,
+                        a: ({node, ...props}) => <a className="underline hover:text-indigo-500" {...props} />,
+                        p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2" {...props} />,
+                        li: ({node, ...props}) => <li className="ml-1" {...props} />
+                      }}
+                    >
+                      {msg.text}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  isLoading && msg.id === messages[messages.length-1].id && (
+                     <div className="flex items-center gap-2 text-slate-400 min-h-[1.25rem]">
+                        <span className="text-xs font-bold animate-pulse">Píšem</span>
+                        <span className="flex gap-1 items-center">
+                           <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
+                           <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-75"></span>
+                           <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-150"></span>
+                        </span>
+                     </div>
+                  )
+                )}
               </div>
             </div>
           ))}
@@ -153,7 +190,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-white border-t border-slate-100">
+        <div className="p-4 pb-8 sm:pb-4 bg-white border-t border-slate-100">
           <div className="relative flex items-center gap-2">
             <input
               type="text"
@@ -161,7 +198,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Opýtaj sa na detaily..."
-              className="flex-1 bg-slate-100 text-slate-900 placeholder-slate-500 border-0 rounded-full px-5 py-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none"
+              className="flex-1 bg-slate-100 text-slate-900 placeholder-slate-500 border-0 rounded-full px-5 py-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none shadow-inner"
               disabled={isLoading}
               autoFocus
             />
@@ -172,7 +209,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
                 p-3 rounded-full flex-shrink-0 transition-all duration-200
                 ${!inputValue.trim() || isLoading 
                   ? 'bg-slate-100 text-slate-300' 
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200'}
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200 hover:scale-105 active:scale-95'}
               `}
             >
               <SendIcon className="w-5 h-5" />

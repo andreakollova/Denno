@@ -10,11 +10,12 @@ interface DigestCardProps {
   onTagClick?: (tag: string) => void;
   onToggleSave?: (section: DigestSection) => void;
   isSaved?: boolean;
+  className?: string;
 }
 
-const DigestCard: React.FC<DigestCardProps> = ({ section, index, onAskMore, onTagClick, onToggleSave, isSaved }) => {
+const DigestCard: React.FC<DigestCardProps> = ({ section, index, onAskMore, onTagClick, onToggleSave, isSaved, className = "mb-8" }) => {
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mb-8 transition-all duration-300 hover:shadow-xl group">
+    <div className={`bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden transition-all duration-300 hover:shadow-xl group ${className}`}>
       
       {/* Header with Badge */}
       <div className="relative h-14 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between px-6">

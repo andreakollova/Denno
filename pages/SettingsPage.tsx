@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { AVAILABLE_TOPICS, PERSONA_UI_DATA } from '../constants';
 import { getSelectedTopicIds, saveSelectedTopicIds, getUserProfile, setPersona, saveUserProfile } from '../services/storageService';
-import { CheckIcon, UserIcon, SparklesIcon } from '../components/Icons';
+import { CheckIcon, UserIcon, SparklesIcon, MapPinIcon, ChevronDownIcon, ChevronUpIcon } from '../components/Icons';
 import { PersonaType } from '../types';
 
 interface SettingsPageProps {
@@ -12,12 +13,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [currentPersona, setCurrentPersona] = useState<PersonaType>(PersonaType.DEFAULT);
   const [city, setCity] = useState<string>('');
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
   useEffect(() => {
     const profile = getUserProfile();
     setSelectedIds(getSelectedTopicIds());
     setCurrentPersona(profile.selectedPersona);
     setCity(profile.city || '');
+    // Open the first category by default
+    const firstCat = AVAILABLE_TOPICS[0].category;
+    setExpandedCategories([firstCat]);
   }, []);
 
   const toggleTopic = (id: string) => {
@@ -44,6 +49,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
     saveUserProfile({ ...profile, city: newCity });
   };
 
+  const toggleCategory = (category: string) => {
+    if (expandedCategories.includes(category)) {
+      setExpandedCategories(expandedCategories.filter(c => c !== category));
+    } else {
+      setExpandedCategories([...expandedCategories, category]);
+    }
+  };
+
   // Group topics by category
   const groupedTopics = AVAILABLE_TOPICS.reduce((acc, topic) => {
     if (!acc[topic.category]) {
@@ -56,108 +69,141 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
   return (
     <div className="px-6 py-8 pb-32">
       
-      <h1 className="text-3xl font-bold text-slate-900 mb-2">Nastavenia</h1>
-      <p className="text-slate-500 mb-8">Prispôsob si svoj zážitok.</p>
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">Nastavenia</h1>
+        <p className="text-slate-500">Prispôsob si svoj denný prehľad.</p>
+      </header>
 
-      {/* Location Section */}
-      <section className="mb-8">
-         <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-3">
-           Moja Lokalita
-         </h2>
-         <input 
-           type="text" 
-           value={city}
-           onChange={handleCityChange}
-           placeholder="napr. Bratislava"
-           className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
-         />
-         <p className="text-xs text-slate-400 mt-2 ml-1">Používa sa pre zobrazenie počasia.</p>
-      </section>
-
-      {/* Persona Section - Dropdown */}
-      <section className="mb-10">
-        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-3 flex items-center">
-          <UserIcon className="w-4 h-4 mr-2" />
-          Osobnosť AI (Mood)
+      {/* Profile & Location Card */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-8">
+        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">
+          Profil & Preferencie
         </h2>
-        
-        <div className="bg-white rounded-xl border border-slate-200 p-1 relative">
-           <select 
-            value={currentPersona} 
-            onChange={handlePersonaChange}
-            className="w-full bg-transparent p-3 text-slate-900 font-bold outline-none appearance-none relative z-10"
-           >
-             {Object.entries(PERSONA_UI_DATA).map(([key, data]) => (
-               <option key={key} value={key}>
-                 {data.label}
-               </option>
-             ))}
-           </select>
-           {/* Custom arrow for styling */}
-           <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none z-0">
-             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-           </div>
+
+        {/* Location */}
+        <div className="mb-6">
+          <label className="block text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+            <MapPinIcon className="w-4 h-4 text-indigo-500" />
+            Moja Lokalita
+          </label>
+          <input 
+            type="text" 
+            value={city}
+            onChange={handleCityChange}
+            placeholder="napr. Bratislava"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+          />
         </div>
-        
-        {/* Description Below */}
-        <div className="mt-3 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex gap-3 items-start animate-in fade-in duration-300">
-           <div className="bg-indigo-100 text-indigo-600 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
-             <span className="text-xs font-bold">i</span>
-           </div>
-           <p className="text-sm text-slate-600 leading-relaxed">
-             {PERSONA_UI_DATA[currentPersona]?.description}
-           </p>
+
+        {/* Persona */}
+        <div>
+          <label className="block text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+            <UserIcon className="w-4 h-4 text-indigo-500" />
+            Osobnosť AI (Mood)
+          </label>
+          <div className="relative">
+             <select 
+              value={currentPersona} 
+              onChange={handlePersonaChange}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium appearance-none outline-none focus:ring-2 focus:ring-indigo-500 relative z-10 pr-10"
+             >
+               {Object.entries(PERSONA_UI_DATA).map(([key, data]) => (
+                 <option key={key} value={key}>
+                   {data.label}
+                 </option>
+               ))}
+             </select>
+             <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none z-10">
+               <ChevronDownIcon className="w-4 h-4" />
+             </div>
+          </div>
+          <div className="mt-3 bg-indigo-50 p-3 rounded-xl border border-indigo-100 flex gap-3 items-start">
+             <span className="text-lg">💡</span>
+             <p className="text-xs text-indigo-800 leading-relaxed font-medium pt-1">
+               {PERSONA_UI_DATA[currentPersona]?.description}
+             </p>
+          </div>
         </div>
-      </section>
+      </div>
 
       {/* Topics Section */}
-      <section>
-        <div className="flex justify-between items-end mb-4">
-          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+      <div>
+        <div className="flex justify-between items-end mb-6">
+          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
             Sledované Témy
           </h2>
-          <span className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-1 rounded-md">
+          <span className="text-xs text-slate-500 font-bold bg-slate-100 px-3 py-1 rounded-full">
             {selectedIds.length} vybraných
           </span>
         </div>
 
-        <div className="space-y-6">
-          {Object.entries(groupedTopics).map(([category, topics]) => (
-            <div key={category} className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-              <div className="bg-slate-50/80 px-4 py-3 border-b border-slate-100">
-                <h3 className="font-bold text-slate-800 text-sm">{category}</h3>
+        <div className="space-y-4">
+          {Object.entries(groupedTopics).map(([category, topics]) => {
+            const isExpanded = expandedCategories.includes(category);
+            const selectedCount = topics.filter(t => selectedIds.includes(t.id)).length;
+            
+            return (
+              <div key={category} className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm transition-all duration-300">
+                
+                {/* Accordion Header */}
+                <button 
+                  onClick={() => toggleCategory(category)}
+                  className="w-full flex items-center justify-between p-5 bg-white hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                     <span className={`text-sm font-bold ${selectedCount > 0 ? 'text-indigo-900' : 'text-slate-700'}`}>
+                       {category}
+                     </span>
+                     {selectedCount > 0 && (
+                        <span className="bg-indigo-100 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          {selectedCount}
+                        </span>
+                     )}
+                  </div>
+                  <div className="text-slate-400">
+                    {isExpanded ? <ChevronUpIcon className="w-5 h-5" /> : <ChevronDownIcon className="w-5 h-5" />}
+                  </div>
+                </button>
+                
+                {/* Accordion Content */}
+                {isExpanded && (
+                  <div className="px-5 pb-5 pt-0 animate-in slide-in-from-top-2 duration-200">
+                    <div className="h-px bg-slate-50 mb-4"></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {topics.map((topic) => {
+                        const isSelected = selectedIds.includes(topic.id);
+                        return (
+                          <button
+                            key={topic.id}
+                            onClick={() => toggleTopic(topic.id)}
+                            className={`
+                              flex items-center justify-between p-3 rounded-xl border text-left transition-all
+                              ${isSelected 
+                                ? 'bg-indigo-50 border-indigo-200 shadow-sm' 
+                                : 'bg-white border-slate-100 hover:border-slate-300'}
+                            `}
+                          >
+                            <span className={`text-xs font-bold ${isSelected ? 'text-indigo-700' : 'text-slate-600'}`}>
+                              {topic.name}
+                            </span>
+                            
+                            <div className={`
+                              w-5 h-5 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ml-2
+                              ${isSelected ? 'bg-indigo-600' : 'bg-slate-100 text-slate-300'}
+                            `}>
+                              {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
-              
-              <div className="divide-y divide-slate-50">
-                {topics.map((topic) => {
-                  const isSelected = selectedIds.includes(topic.id);
-                  return (
-                    <button
-                      key={topic.id}
-                      onClick={() => toggleTopic(topic.id)}
-                      className={`
-                        w-full flex items-center justify-between p-4 transition-colors hover:bg-slate-50
-                        ${isSelected ? 'bg-indigo-50/30' : ''}
-                      `}
-                    >
-                      <span className={`text-sm font-medium ${isSelected ? 'text-indigo-900' : 'text-slate-600'}`}>
-                        {topic.name}
-                      </span>
-                      
-                      <div className={`
-                        w-5 h-5 rounded border flex items-center justify-center transition-colors
-                        ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 bg-white'}
-                      `}>
-                        {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
-      </section>
+      </div>
       
       <div className="mt-8 text-center text-xs text-slate-400 mb-6">
         Všetky zmeny sa ukladajú automaticky.

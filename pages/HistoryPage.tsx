@@ -4,7 +4,7 @@ import { DailyDigest, DigestSection, SavedInsight } from '../types';
 import { getDigests, getSavedInsights, removeInsight } from '../services/storageService';
 import DigestCard from '../components/DigestCard';
 import ChatModal from '../components/ChatModal';
-import { CollectionIcon, BookmarkSolidIcon, NewspaperIcon } from '../components/Icons';
+import { CollectionIcon, BookmarkSolidIcon, NewspaperIcon, ChevronDownIcon, ChevronUpIcon } from '../components/Icons';
 
 interface HistoryPageProps {
   onBack: () => void;
@@ -21,6 +21,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
   
   // Saved Insights State
   const [savedInsights, setSavedInsights] = useState<SavedInsight[]>([]);
+  const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
 
   // Common State
   const [activeChatSection, setActiveChatSection] = useState<DigestSection | null>(null);
@@ -173,22 +174,46 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
                <p className="text-xs text-slate-400 mt-2">Ukladaj si zaujímavé karty z denného prehľadu.</p>
              </div>
            ) : (
-             <div className="space-y-6">
-                {savedInsights.map((item, index) => (
-                  <div key={item.id} className="relative">
-                     {/* Custom Save Card Wrapper */}
-                     <DigestCard 
-                        section={item.section} 
-                        index={index} 
-                        onAskMore={setActiveChatSection}
-                        onToggleSave={() => handleRemoveSaved(item.id)}
-                        isSaved={true}
-                     />
-                     <div className="absolute -top-3 left-4 bg-slate-900 text-white text-[10px] px-2 py-1 rounded shadow-sm z-10 font-bold uppercase tracking-wide">
-                        {new Date(item.sourceDigestDate).toLocaleDateString('sk-SK')}
-                     </div>
-                  </div>
-                ))}
+             <div className="space-y-4">
+                {savedInsights.map((item, index) => {
+                  const isExpanded = expandedInsightId === item.id;
+                  return (
+                    <div key={item.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                       <button
+                         onClick={() => setExpandedInsightId(isExpanded ? null : item.id)}
+                         className="w-full flex items-center justify-between p-4 text-left bg-white hover:bg-slate-50/50 transition-colors"
+                       >
+                          <div className="flex-1 pr-4">
+                             <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                  {new Date(item.sourceDigestDate).toLocaleDateString('sk-SK')}
+                                </span>
+                             </div>
+                             <h3 className={`font-bold text-slate-800 text-sm leading-snug ${isExpanded ? 'text-indigo-600' : ''}`}>
+                               {item.section.title}
+                             </h3>
+                          </div>
+                          <div className="text-slate-400 flex-shrink-0 ml-2">
+                             {isExpanded ? <ChevronUpIcon className="w-5 h-5" /> : <ChevronDownIcon className="w-5 h-5" />}
+                          </div>
+                       </button>
+
+                       {isExpanded && (
+                          <div className="p-2 bg-slate-50 border-t border-slate-100 animate-in slide-in-from-top-2">
+                              {/* Embed the DigestCard without default margins */}
+                              <DigestCard 
+                                 section={item.section} 
+                                 index={index} 
+                                 onAskMore={setActiveChatSection}
+                                 onToggleSave={() => handleRemoveSaved(item.id)}
+                                 isSaved={true}
+                                 className="mb-0 border-none shadow-none"
+                              />
+                          </div>
+                       )}
+                    </div>
+                  );
+                })}
              </div>
            )}
          </>

@@ -4,9 +4,12 @@ import { Article, DailyDigest, DigestSection, PersonaType, LearningPack } from '
 import { getSystemInstruction } from '../constants';
 import { fetchTextWithFallback } from './rssService';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Helper to get a fresh AI client instance
+// This ensures we always use the current environment API key
+const getAiClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateDailyDigest = async (articles: Article[], persona: PersonaType): Promise<DailyDigest> => {
+  const ai = getAiClient();
   if (articles.length === 0) {
     throw new Error("Žiadne články na spracovanie.");
   }
@@ -100,6 +103,7 @@ export const generateAdditionalSections = async (
   existingSections: DigestSection[], 
   persona: PersonaType
 ): Promise<DigestSection[]> => {
+  const ai = getAiClient();
   
   if (articles.length === 0) return [];
 
@@ -157,11 +161,18 @@ export const generateAdditionalSections = async (
 };
 
 export const createChatSession = (section: DigestSection): Chat => {
+  const ai = getAiClient();
+  
+  // Safe accessor for keyPoints to handle legacy data or empty arrays
+  const keyPointsText = section.keyPoints && section.keyPoints.length > 0
+    ? section.keyPoints.join("; ")
+    : (section.whatToWatch || "Žiadne ďalšie detaily.");
+
   const contextString = `
     Téma článku: ${section.title}
     Čo je nové: ${section.whatIsNew}
     Čo sa zmenilo: ${section.whatChanged}
-    Kľúčové body: ${section.keyPoints ? section.keyPoints.join("; ") : section.whatToWatch}
+    Kľúčové body: ${keyPointsText}
   `;
 
   return ai.chats.create({
@@ -180,6 +191,7 @@ export const createChatSession = (section: DigestSection): Chat => {
 };
 
 export const summarizeUrl = async (url: string, persona: PersonaType): Promise<string> => {
+  const ai = getAiClient();
   try {
     const content = await fetchTextWithFallback(url);
     if (!content) {
@@ -207,6 +219,7 @@ export const summarizeUrl = async (url: string, persona: PersonaType): Promise<s
 
 // Feature 43: Encyclopedia - Explain a term
 export const explainTerm = async (term: string, persona: PersonaType): Promise<string> => {
+  const ai = getAiClient();
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: `Explain the concept or topic "${term}" clearly in Slovak. Use the persona: ${persona}. Keep it under 150 words.`,
@@ -219,6 +232,7 @@ export const explainTerm = async (term: string, persona: PersonaType): Promise<s
 
 // Feature 44: Fast Learning Packs
 export const generateLearningPack = async (topic: string, persona: PersonaType): Promise<LearningPack> => {
+  const ai = getAiClient();
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: `Create a "10-minute Fast Learning Pack" about: ${topic}. Language: Slovak.`,
