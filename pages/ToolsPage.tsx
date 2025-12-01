@@ -1,18 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
-import { summarizeUrl, generateLearningPack, explainTerm } from '../services/geminiService';
-import { getUserProfile, getDigests } from '../services/storageService';
-import { LinkIcon, SendIcon, BotIcon, CloudIcon, AcademicIcon, SparklesIcon, XIcon, BookIcon, RefreshIcon, ChevronDownIcon } from '../components/Icons';
+import { summarizeUrl, generateLearningPack } from '../services/geminiService';
+import { getUserProfile, markLearningTopicComplete } from '../services/storageService';
+import { LinkIcon, SendIcon, BotIcon, AcademicIcon, SparklesIcon, RefreshIcon } from '../components/Icons';
 import { LearningPack } from '../types';
 import ReactMarkdown from 'react-markdown';
 
 // Categorized topics to ensure variety on every refresh
 const TOPIC_CATEGORIES = {
   "Tech & AI": [
-    "Umelá inteligencia", "Neurónové siete", "Blockchain", "Web3", "Kyberbezpečnosť", 
+    "Umelá inteligencia", "Strojové učenie (ML)", "Hlboké učenie (Deep Learning)", "Neurónové siete", 
+    "Veľké jazykové modely (LLM)", "Generatívna AI", "ChatGPT a GPT modely", "Prompt Engineering",
+    "Počítačové videnie", "Spracovanie jazyka (NLP)", "AGI (Všeobecná AI)", "Difúzne modely",
+    "RAG (Retrieval-Augmented Generation)", "AI Agenty", "Etické zarovnanie (AI Alignment)",
+    "Turingov test", "AI Halucinácie", "Blockchain", "Web3", "Kyberbezpečnosť", 
     "Metaverse", "Kvantové počítanie", "Smart Contracts", "Internet vecí (IoT)", 
-    "Rozšírená realita (AR)", "Deepfakes", "Big Data", "Cloud Computing", "5G siete",
-    "Generatívne umenie", "Autonómne vozidlá", "Etika AI"
+    "Rozšírená realita (AR)", "Deepfakes", "Big Data", "Cloud Computing", "Autonómne vozidlá",
+    "Reinforcement Learning", "Supervised Learning", "Unsupervised Learning", "Transformer Model",
+    "Attention Mechanism", "Tokenizácia", "Fine-tuning", "Zero-shot Learning", "Few-shot Learning",
+    "Bias v AI", "AI Etika", "Explainable AI (XAI)", "Singularita", "Robotika", "Federated Learning"
   ],
   "Veda & Vesmír": [
     "Kvantová fyzika", "CRISPR", "Epigenetika", "Teória relativity", "Čierne diery", 
@@ -41,35 +47,11 @@ const TOPIC_CATEGORIES = {
   ]
 };
 
-// Comprehensive stop list to filter out common language and generic news terms
-// This ensures the word cloud focuses on concepts, foreign terms, and specific entities.
-const SLOVAK_STOP_WORDS = new Set([
-  // Grammar & Function words
-  'a', 'aby', 'aj', 'ako', 'ak', 'ani', 'asi', 'ale', 'alebo', 'bude', 'budú', 'bol', 'bola', 'bolo', 'boli', 
-  'by', 'cez', 'čo', 'či', 'ďalšie', 'do', 'dnes', 'ešte', 'ho', 'hoci', 'iba', 'ich', 'iné', 'ja', 'je', 'jeho', 
-  'jej', 'im', 'kam', 'kde', 'keď', 'kto', 'ktorý', 'ktorá', 'ktoré', 'ku', 'lebo', 'len', 'ma', 'mať', 'má', 
-  'medzi', 'mne', 'mnou', 'musí', 'možno', 'môže', 'my', 'na', 'nad', 'nám', 'náš', 'naša', 'nech', 'nie', 
-  'nové', 'nový', 'nová', 'nami', 'o', 'od', 'okolo', 'on', 'ona', 'ono', 'oni', 'ony', 'po', 'pod', 'pre', 
-  'pred', 'pri', 'proti', 'prvý', 'prvá', 'prvé', 's', 'sa', 'si', 'som', 'svoj', 'svoja', 'svoje', 'sme', 
-  'sú', 'tak', 'takže', 'tam', 'ten', 'tá', 'to', 'tí', 'tie', 'tento', 'táto', 'toto', 'teda', 'tebe', 
-  'tebou', 'tvoj', 'tvoja', 'tvoje', 'tu', 'ty', 'už', 'v', 'vám', 'váš', 'vaša', 'vaše', 'viac', 'však', 
-  'všetko', 'všetci', 'vy', 'z', 'za', 'zo', 'že',
-  
-  // Common Generic News Nouns (To filter out "noise" and keep "concepts")
-  'rok', 'roku', 'rokov', 'článku', 'podľa', 'veľmi', 'vláda', 'vlády', 'štát', 'štátu', 'polícia', 'slovensko', 
-  'slovenska', 'bratislava', 'fico', 'pellegrini', 'strana', 'hnutie', 'smer', 'hlas', 'ps', 'sas', 'kdh', 
-  'parlament', 'prezident', 'minister', 'premiér', 'človek', 'ľudia', 'ľudí', 'milión', 'miliónov', 'miliardy', 
-  'percent', 'percentá', 'cena', 'ceny', 'trh', 'trhu', 'vývoj', 'nárast', 'pokles', 'správa', 'správy', 
-  'informácie', 'situácia', 'problém', 'riešenie', 'návrh', 'zákon', 'opatrenia', 'pomoc', 'podpora', 
-  'spoločnosť', 'firma', 'firmy', 'projekt', 'program', 'cieľ', 'plán', 'výsledok', 'úspech', 'svet', 
-  'krajina', 'krajiny', 'mesto', 'obce', 'región', 'systém', 'proces', 'úroveň', 'obdobie', 'čas', 'deň', 
-  'týždeň', 'mesiac', 'práca', 'život', 'domov', 'škola', 'deti', 'rodičia', 'zdravie', 'nemocnica', 
-  'pacient', 'lieky', 'auto', 'cesta', 'doprava', 'vlaky', 'počasie', 'teplota', 'voda', 'vzduch', 'voľby',
-  'bude', 'majú', 'môžu', 'tieto', 'týchto', 'sveta', 'proti', 'medzi', 'veľký', 'malý', 'dobrý', 'zlý',
-  'vysoký', 'nízky', 'nový', 'starý', 'posledný', 'prvý', 'druhý', 'tretí', 'hlavný', 'dôležitý', 'známy'
-]);
+interface ToolsPageProps {
+  validateAccess?: (action: () => void) => void;
+}
 
-const ToolsPage: React.FC = () => {
+const ToolsPage: React.FC<ToolsPageProps> = ({ validateAccess }) => {
   const [url, setUrl] = useState('');
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -80,84 +62,65 @@ const ToolsPage: React.FC = () => {
   const [learningLoading, setLearningLoading] = useState(false);
   const [displayedPacks, setDisplayedPacks] = useState<string[]>([]);
 
-  // Word Cloud State
-  const [wordCloud, setWordCloud] = useState<{word: string, count: number}[]>([]);
-  
-  // Definition Modal State
-  const [defTerm, setDefTerm] = useState<string | null>(null);
-  const [defContent, setDefContent] = useState<string | null>(null);
-  const [defLoading, setDefLoading] = useState(false);
-
   useEffect(() => {
     refreshPacks();
-    
-    // Generate Word Cloud from latest digest
-    const digests = getDigests();
-    if (digests.length > 0) {
-      const today = digests[0];
-      // Collect text from today's digest sections (titles, whatIsNew, keyPoints)
-      // We purposefully skip the summary to get more specific terminology
-      let text = "";
-      today.sections.forEach(s => {
-        text += s.title + " " + s.whatIsNew + " " + s.keyPoints.join(" ") + " ";
-      });
-
-      // Tokenize
-      const words = text.toLowerCase()
-        .replace(/[.,/#!$%^&*;:{}=\-_`~()"?]/g, "")
-        .split(/\s+/);
-      
-      const counts: Record<string, number> = {};
-      
-      words.forEach(w => {
-        // Filter: 
-        // 1. Must be longer than 4 chars (skips short filler)
-        // 2. Must NOT be in the massive stop list
-        // 3. Must not be a number
-        if (w.length > 4 && !SLOVAK_STOP_WORDS.has(w) && !/^\d+$/.test(w)) {
-           counts[w] = (counts[w] || 0) + 1;
-        }
-      });
-
-      const sorted = Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 15) // Top 15 words
-        .map(([word, count]) => ({ word, count }));
-      
-      setWordCloud(sorted);
-    }
   }, []);
 
   const refreshPacks = () => {
-    // Smart shuffle: Pick 1-2 items from EACH category to ensure variety
-    const newSelection: string[] = [];
-    
-    Object.values(TOPIC_CATEGORIES).forEach(categoryItems => {
-        // Shuffle the category items
-        const shuffledCategory = [...categoryItems].sort(() => 0.5 - Math.random());
-        // Take top 2 from this category
-        newSelection.push(...shuffledCategory.slice(0, 2));
-    });
+    const profile = getUserProfile();
+    const completed = new Set(profile.completedLearningTopics.map(t => t.toLowerCase()));
 
-    // Shuffle the final mix and take top 10
-    const finalMix = newSelection.sort(() => 0.5 - Math.random()).slice(0, 10);
+    // 70% AI Topics (7 items) + 30% Other Topics (3 items)
+    const newSelection: string[] = [];
+
+    // 1. Get AI Topics
+    const aiCategory = TOPIC_CATEGORIES["Tech & AI"];
+    const availableAi = aiCategory.filter(item => !completed.has(item.toLowerCase()));
+    const shuffledAi = [...availableAi].sort(() => 0.5 - Math.random());
+    const selectedAi = shuffledAi.slice(0, 7);
+    newSelection.push(...selectedAi);
+
+    // 2. Get Other Topics
+    const otherCategories = Object.entries(TOPIC_CATEGORIES).filter(([key]) => key !== "Tech & AI");
+    const otherTopicsPool: string[] = [];
+    
+    otherCategories.forEach(([_, items]) => {
+        otherTopicsPool.push(...items.filter(item => !completed.has(item.toLowerCase())));
+    });
+    
+    const shuffledOthers = [...otherTopicsPool].sort(() => 0.5 - Math.random());
+    const remainingSlots = 10 - newSelection.length;
+    const selectedOthers = shuffledOthers.slice(0, remainingSlots);
+    newSelection.push(...selectedOthers);
+
+    // Final shuffle so AI topics aren't just at the top
+    const finalMix = newSelection.sort(() => 0.5 - Math.random());
     setDisplayedPacks(finalMix);
   };
 
   const handleExplain = async () => {
     if (!url || loading) return;
 
-    setLoading(true);
-    setResult(null);
+    // GATE: Feature limited
+    const execute = async () => {
+        setLoading(true);
+        setResult(null);
 
-    try {
-      const profile = getUserProfile();
-      const summary = await summarizeUrl(url, profile.selectedPersona);
-      setResult(summary);
-    } catch (e) {
-      setResult("Nepodarilo sa spracovať odkaz.");
-    } finally {
-      setLoading(false);
+        try {
+        const profile = getUserProfile();
+        const summary = await summarizeUrl(url, profile.selectedPersona);
+        setResult(summary);
+        } catch (e) {
+        setResult("Nepodarilo sa spracovať odkaz.");
+        } finally {
+        setLoading(false);
+        }
+    };
+
+    if (validateAccess) {
+        validateAccess(execute);
+    } else {
+        execute();
     }
   };
 
@@ -165,19 +128,34 @@ const ToolsPage: React.FC = () => {
     const topicToUse = topicOverride || learnTopic;
     if (!topicToUse || learningLoading) return;
     
-    // Update input if clicked from popular list
-    if (topicOverride) setLearnTopic(topicOverride);
+    // GATE: Feature limited
+    const execute = async () => {
+        // Update input if clicked from popular list
+        if (topicOverride) setLearnTopic(topicOverride);
 
-    setLearningLoading(true);
-    setLearningPack(null);
-    try {
-      const profile = getUserProfile();
-      const pack = await generateLearningPack(topicToUse, profile.selectedPersona);
-      setLearningPack(pack);
-    } catch (e) {
-      alert("Nepodarilo sa vytvoriť rýchlokurz.");
-    } finally {
-      setLearningLoading(false);
+        setLearningLoading(true);
+        setLearningPack(null);
+        try {
+        const profile = getUserProfile();
+        const pack = await generateLearningPack(topicToUse, profile.selectedPersona);
+        
+        // Mark as completed so it doesn't show up again
+        markLearningTopicComplete(topicToUse);
+        // Refresh the list immediately
+        refreshPacks();
+
+        setLearningPack(pack);
+        } catch (e) {
+        alert("Nepodarilo sa vytvoriť rýchlokurz.");
+        } finally {
+        setLearningLoading(false);
+        }
+    };
+
+    if (validateAccess) {
+        validateAccess(execute);
+    } else {
+        execute();
     }
   };
 
@@ -186,60 +164,10 @@ const ToolsPage: React.FC = () => {
     setLearnTopic('');
   };
 
-  const handleWordClick = async (word: string) => {
-    setDefTerm(word);
-    setDefContent(null);
-    setDefLoading(true);
-    try {
-      const profile = getUserProfile();
-      const explanation = await explainTerm(word, profile.selectedPersona);
-      setDefContent(explanation);
-    } catch (e) {
-      setDefContent("Nepodarilo sa načítať definíciu.");
-    } finally {
-      setDefLoading(false);
-    }
-  };
-
-  const closeDefModal = () => {
-    setDefTerm(null);
-    setDefContent(null);
-  };
-
   return (
     <div className="px-6 py-8 animate-in fade-in pb-32">
       <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Nástroje</h1>
       <p className="text-slate-500 dark:text-slate-400 mb-8">Rýchle AI funkcie pre tvoju zvedavosť.</p>
-
-      {/* Feature 42: Word Cloud */}
-      {wordCloud.length > 0 && (
-         <div className="mb-8 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <CloudIcon className="w-5 h-5 text-[#6466f1]" />
-              <h2 className="font-bold text-lg text-slate-900 dark:text-white">Trendy týždňa</h2>
-            </div>
-            <p className="text-xs text-slate-400 mb-4">
-               Kľúčové koncepty a pojmy z tvojho posledného prehľadu.
-            </p>
-            <div className="flex flex-wrap gap-x-3 gap-y-2 justify-center items-center py-2">
-               {wordCloud.map((item, idx) => {
-                  // Dynamic sizing based on rank
-                  const sizeClasses = idx < 3 ? 'text-2xl font-black text-[#6466f1] dark:text-indigo-400' : 
-                                      idx < 7 ? 'text-lg font-bold text-[#6466f1]/80 dark:text-indigo-400/80' : 
-                                      'text-sm font-medium text-slate-400 dark:text-slate-500';
-                  return (
-                    <button 
-                      key={item.word} 
-                      onClick={() => handleWordClick(item.word)}
-                      className={`${sizeClasses} hover:scale-110 hover:text-indigo-400 transition-all cursor-pointer capitalize`}
-                    >
-                       {item.word}
-                    </button>
-                  )
-               })}
-            </div>
-         </div>
-      )}
 
       {/* Feature 44: Fast Learning Packs */}
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
@@ -249,7 +177,7 @@ const ToolsPage: React.FC = () => {
             <h2 className="font-bold text-lg">AI rýchlokurzy</h2>
           </div>
           <p className="text-slate-400 text-sm">
-            Zadaj tému a získaj štruktúrovaný "10-minútový rýchlokurz".
+            Zadaj tému a vytvorím ti štruktúrovaný "5-minútový rýchlokurz".
           </p>
         </div>
 
@@ -287,17 +215,22 @@ const ToolsPage: React.FC = () => {
                    Obmeniť
                  </button>
                </div>
-               <div className="flex flex-wrap gap-2">
-                  {displayedPacks.map(topic => (
-                    <button 
-                      key={topic}
-                      onClick={() => handleCreateLearningPack(topic)}
-                      className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-600 dark:text-slate-300 hover:text-[#6466f1] dark:hover:text-indigo-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-200 dark:hover:border-indigo-800 rounded-lg text-xs font-bold transition-colors"
-                    >
-                      {topic}
-                    </button>
-                  ))}
-               </div>
+               
+               {displayedPacks.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">Všetky populárne témy sú už dokončené! Skúste zadať vlastnú.</p>
+               ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {displayedPacks.map(topic => (
+                      <button 
+                        key={topic}
+                        onClick={() => handleCreateLearningPack(topic)}
+                        className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-600 dark:text-slate-300 hover:text-[#6466f1] dark:hover:text-indigo-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-200 dark:hover:border-indigo-800 rounded-lg text-xs font-bold transition-colors"
+                      >
+                        {topic}
+                      </button>
+                    ))}
+                  </div>
+               )}
             </div>
           )}
 
@@ -423,46 +356,6 @@ const ToolsPage: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Word Definition Modal */}
-      {defTerm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={closeDefModal}></div>
-           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
-              
-              <div className="bg-[#6466f1] p-4 flex justify-between items-start">
-                 <div className="flex items-center gap-2 text-white">
-                    <BookIcon className="w-5 h-5 text-indigo-200" />
-                    <h3 className="font-bold text-lg">AI slovník</h3>
-                 </div>
-                 <button onClick={closeDefModal} className="text-white/70 hover:text-white">
-                    <XIcon className="w-5 h-5" />
-                 </button>
-              </div>
-
-              <div className="p-6">
-                 <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-4 capitalize">{defTerm}</h2>
-                 
-                 {defLoading ? (
-                    <div className="flex flex-col items-center justify-center py-8">
-                       <div className="w-8 h-8 border-4 border-indigo-200 border-t-[#6466f1] rounded-full animate-spin mb-3"></div>
-                       <p className="text-sm text-slate-500">Analyzujem pojem...</p>
-                    </div>
-                 ) : (
-                    <div className="prose prose-sm text-slate-700 dark:text-slate-300 leading-relaxed max-h-60 overflow-y-auto pr-2">
-                       <ReactMarkdown>{defContent || ""}</ReactMarkdown>
-                    </div>
-                 )}
-                 
-                 <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-center">
-                    <button onClick={closeDefModal} className="text-sm font-bold text-[#6466f1] dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 px-4 py-2 rounded-lg transition-colors">
-                       Zavrieť
-                    </button>
-                 </div>
-              </div>
-           </div>
-        </div>
-      )}
       
     </div>
   );

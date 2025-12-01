@@ -15,9 +15,11 @@ interface DigestPageProps {
   autoStart?: boolean;
   onAutoStartConsumed?: () => void;
   onProfileUpdate?: () => void;
+  validateAccess?: (action: () => void) => void;
+  resetTrigger?: number;
 }
 
-const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoStartConsumed, onProfileUpdate }) => {
+const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoStartConsumed, onProfileUpdate, validateAccess, resetTrigger }) => {
   const [digest, setDigest] = useState<DailyDigest | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<string>('');
@@ -51,50 +53,97 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
     setProfile(getUserProfile());
   }, [lastSave]); // Reload when saves happen
 
+  // Reset to Welcome Screen when logo is clicked
+  useEffect(() => {
+    if (resetTrigger && resetTrigger > 0) {
+        setDigest(null);
+        setLoading(false);
+        setError(null);
+        setCurrentDate(new Date()); // Ensure date is refreshed to now
+    }
+  }, [resetTrigger]);
+
   // Effect for rotating loading messages
   useEffect(() => {
-    if (!isAiProcessing) return;
+    if (!loading) return;
 
-    const personaLabel = PERSONA_UI_DATA[profile.selectedPersona]?.label || profile.selectedPersona;
+    let interval: ReturnType<typeof setInterval>;
+    let timeout: ReturnType<typeof setTimeout>;
+
+    if (!isAiProcessing) {
+        // PHASE 1: FETCHING (Downloading articles)
+        // Initial text "Hľadám najnovšie správy..." is set in handleGenerate.
+        
+        // After 3 seconds, if still fetching, rotate generic messages
+        timeout = setTimeout(() => {
+            setFadeProp('opacity-0 translate-y-2');
+            setTimeout(() => {
+                setLoadingStep('Kontaktujem spravodajské servery...');
+                setFadeProp('opacity-100 translate-y-0');
+                
+                // Start rotating generic messages if it takes even longer
+                interval = setInterval(() => {
+                    setFadeProp('opacity-0 translate-y-2');
+                    setTimeout(() => {
+                        const fillerMessages = [
+                            "Overujem dostupnosť zdrojov...",
+                            "Nezaberie mi to viac ako minútku...",
+                            "Sťahujem obsah článkov...",
+                            "Triedim relevantné informácie..."
+                        ];
+                        // Cycle through them randomly or sequentially? Random is fine for filler.
+                        const randomMsg = fillerMessages[Math.floor(Math.random() * fillerMessages.length)];
+                        setLoadingStep(randomMsg);
+                        setFadeProp('opacity-100 translate-y-0');
+                    }, 600);
+                }, 4000); 
+
+            }, 600);
+        }, 3000);
+
+    } else {
+        // PHASE 2: AI PROCESSING (We know the article count now)
+        clearTimeout(timeout); // Clear the fetching timeout/interval
+        if (interval!) clearInterval(interval);
+
+        const personaLabel = PERSONA_UI_DATA[profile.selectedPersona]?.label || profile.selectedPersona;
+        
+        const messages = [
+          `Môže to trvať pár minút...`,
+          `Analyzujem ${articleCount} stiahnutých článkov...`,
+          `Aplikujem mód: ${personaLabel}...`,
+          `Zatiaľ si sprav kávičku...`,
+          `Hľadám kľúčové súvislosti a trendy...`,
+          `Píšem zhrnutia a formátujem text...`,
+          `Ešte chvíľočku, už to bude...`
+        ];
     
-    const messages = [
-      `Analyzujem ${articleCount} stiahnutých článkov...`,
-      `Aplikujem mód: ${personaLabel}...`,
-      `Hľadám kľúčové súvislosti a trendy...`,
-      `Zatiaľ si sprav kávičku...`,
-      `Píšem zhrnutia a formátujem text...`,
-      `Ešte chvíľočku, už to bude...`
-    ];
-
-    let i = 0;
+        let i = 0;
+        
+        // Immediate transition to the first AI message
+        setFadeProp('opacity-0 translate-y-2');
+        setTimeout(() => {
+            setLoadingStep(messages[0]);
+            setFadeProp('opacity-100 translate-y-0');
+        }, 600);
     
-    // Initial transition: Fade out the previous "Searching..." message first
-    setFadeProp('opacity-0 translate-y-2');
-
-    // Wait for fade out, then show first AI message
-    const startTimeout = setTimeout(() => {
-        setLoadingStep(messages[0]);
-        setFadeProp('opacity-100 translate-y-0');
-    }, 600);
-
-    const interval = setInterval(() => {
-      // Start fade out
-      setFadeProp('opacity-0 translate-y-2');
-
-      setTimeout(() => {
-        i = (i + 1) % messages.length;
-        setLoadingStep(messages[i]);
-        // Start fade in
-        setFadeProp('opacity-100 translate-y-0');
-      }, 600); // Wait for fade out to finish
-
-    }, 5000); // Change message every 5 seconds
+        interval = setInterval(() => {
+          setFadeProp('opacity-0 translate-y-2');
+    
+          setTimeout(() => {
+            i = (i + 1) % messages.length;
+            setLoadingStep(messages[i]);
+            setFadeProp('opacity-100 translate-y-0');
+          }, 600);
+    
+        }, 5000); 
+    }
 
     return () => {
+        clearTimeout(timeout);
         clearInterval(interval);
-        clearTimeout(startTimeout);
     };
-  }, [isAiProcessing, articleCount, profile.selectedPersona]);
+  }, [loading, isAiProcessing, articleCount, profile.selectedPersona]);
 
 
   const handleGenerate = async () => {
@@ -108,17 +157,18 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
     setIsAiProcessing(false); // Reset AI processing state initially
     setError(null);
 
+    // Initial State for Loading
+    setLoadingStep('Hľadám najnovšie správy...');
+    setFadeProp('opacity-100 translate-y-0'); 
+
     try {
-      setLoadingStep('Hľadám najnovšie správy...');
-      setFadeProp('opacity-100 translate-y-0'); // Ensure visible start
-      
       const articles = await fetchArticlesForTopics(topics);
       
       if (articles.length === 0) {
         throw new Error('Nepodarilo sa stiahnuť žiadne články. Skontrolujte internetové pripojenie alebo skúste iné témy.');
       }
 
-      // Start the rotating messages
+      // Switch to Phase 2
       setArticleCount(articles.length);
       setIsAiProcessing(true);
 
@@ -144,6 +194,18 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
   const handleGenerateMore = async () => {
     if (!digest || !digest.sourceArticles || loadingMore) return;
     
+    // GATE: Feature limited to premium/trial
+    if (validateAccess) {
+        validateAccess(async () => {
+            await executeGenerateMore();
+        });
+    } else {
+        await executeGenerateMore();
+    }
+  };
+
+  const executeGenerateMore = async () => {
+    if (!digest) return;
     setLoadingMore(true);
     try {
       const newSections = await generateAdditionalSections(
@@ -171,9 +233,19 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
   };
 
   const handleReset = () => {
-    if (digest) {
-        deleteDigest(digest.id);
-        setDigest(null);
+    // GATE: Feature limited to premium/trial
+    if (validateAccess) {
+        validateAccess(() => {
+            if (digest) {
+                deleteDigest(digest.id);
+                setDigest(null);
+            }
+        });
+    } else {
+        if (digest) {
+            deleteDigest(digest.id);
+            setDigest(null);
+        }
     }
   };
 
@@ -194,22 +266,40 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
 
   // Feature 43: Encyclopedia Handler
   const handleTagClick = async (tag: string) => {
-    setEncyclopediaTerm(tag);
-    setEncyclopediaContent(null);
-    setEncyclopediaLoading(true);
-    try {
-      const text = await explainTerm(tag, profile.selectedPersona);
-      setEncyclopediaContent(text);
-    } catch (e) {
-      setEncyclopediaContent("Nepodarilo sa načítať vysvetlenie.");
-    } finally {
-      setEncyclopediaLoading(false);
+    // GATE: Feature limited
+    const execute = async () => {
+        setEncyclopediaTerm(tag);
+        setEncyclopediaContent(null);
+        setEncyclopediaLoading(true);
+        try {
+        const text = await explainTerm(tag, profile.selectedPersona);
+        setEncyclopediaContent(text);
+        } catch (e) {
+        setEncyclopediaContent("Nepodarilo sa načítať vysvetlenie.");
+        } finally {
+        setEncyclopediaLoading(false);
+        }
+    };
+
+    if (validateAccess) {
+        validateAccess(execute);
+    } else {
+        execute();
     }
   };
 
   const closeEncyclopedia = () => {
     setEncyclopediaTerm(null);
     setEncyclopediaContent(null);
+  };
+
+  const handleChatOpen = (section: DigestSection) => {
+      // GATE: Feature limited
+      if (validateAccess) {
+          validateAccess(() => setActiveChatSection(section));
+      } else {
+          setActiveChatSection(section);
+      }
   };
 
   // Handle auto-start from Settings "Generate" button
@@ -246,7 +336,7 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
             <SparklesIcon className="w-6 h-6 text-[#6466f1] animate-pulse" />
           </div>
         </div>
-        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-3 tracking-tight">Pripravujem váš prehľad</h3>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1 tracking-tight">Pripravujem váš prehľad</h3>
         <p className={`text-sm text-slate-500 dark:text-slate-400 font-medium transition-all duration-700 ease-in-out h-6 transform ${fadeProp}`}>
             {loadingStep}
         </p>
@@ -342,7 +432,7 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
         <div className="px-6 py-6 pb-32 space-y-8">
             
             {/* Header: Date & Title */}
-            <div className="mb-8">
+            <div className="mb-4">
                <div className="mb-4">
                  <p className="text-xs font-bold text-[#6466f1] uppercase tracking-widest">{formattedDate}</p>
                </div>
@@ -422,7 +512,7 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
                       key={index} 
                       section={section} 
                       index={index} 
-                      onAskMore={setActiveChatSection}
+                      onAskMore={handleChatOpen}
                       onTagClick={handleTagClick}
                       onToggleSave={handleToggleSave}
                       isSaved={isInsightSaved(section.title, digest.id)}

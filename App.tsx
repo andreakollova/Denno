@@ -15,20 +15,17 @@ import { checkAndTriggerNotification } from './services/notificationService';
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DIGEST);
   const [autoStartDigest, setAutoStartDigest] = useState(false);
+  const [resetDigestTrigger, setResetDigestTrigger] = useState(0);
   
   // Global State for Header
   const [profile, setProfile] = useState(getUserProfile());
   const [weather, setWeather] = useState<WeatherData | null>(null);
 
-  // Subscription State
-  const [hasAccess, setHasAccess] = useState(true);
+  // Subscription State (Controls the paywall modal, not the whole app)
+  const [showPaywall, setShowPaywall] = useState(false);
   
   useEffect(() => {
-    // Check subscription status on load
-    const access = checkSubscriptionAccess();
-    setHasAccess(access);
-
-    // Refresh profile when tab changes to update streak, theme, and sub status
+    // Initial profile load
     setProfile(getUserProfile());
   }, [activeTab]);
 
@@ -61,13 +58,26 @@ const App: React.FC = () => {
 
   const handleProfileUpdate = () => {
     setProfile(getUserProfile());
-    // Re-check access in case it changed via settings/unlock
-    setHasAccess(checkSubscriptionAccess());
   };
 
   const handleSubscriptionSuccess = () => {
-    setHasAccess(true);
+    setShowPaywall(false);
     setProfile(getUserProfile()); // Update profile to reflect Active state
+  };
+
+  const handleLogoClick = () => {
+    setActiveTab(AppTab.DIGEST);
+    setResetDigestTrigger(prev => prev + 1);
+  };
+
+  // Helper to gate specific features
+  const validateAccess = (action: () => void) => {
+    const hasAccess = checkSubscriptionAccess();
+    if (hasAccess) {
+      action();
+    } else {
+      setShowPaywall(true);
+    }
   };
 
   const renderContent = () => {
@@ -78,18 +88,20 @@ const App: React.FC = () => {
                   autoStart={autoStartDigest}
                   onAutoStartConsumed={() => setAutoStartDigest(false)}
                   onProfileUpdate={handleProfileUpdate} 
+                  validateAccess={validateAccess}
+                  resetTrigger={resetDigestTrigger}
                />;
       case AppTab.HISTORY:
         return <HistoryPage onBack={() => setActiveTab(AppTab.DIGEST)} />;
       case AppTab.TOOLS:
-        return <ToolsPage />;
+        return <ToolsPage validateAccess={validateAccess} />;
       case AppTab.SETTINGS:
         return <SettingsPage onFinish={() => {
             setAutoStartDigest(true);
             setActiveTab(AppTab.DIGEST);
         }} onThemeChange={handleProfileUpdate} />;
       default:
-        return <DigestPage changeTab={setActiveTab} />;
+        return <DigestPage changeTab={setActiveTab} validateAccess={validateAccess} />;
     }
   };
 
@@ -99,16 +111,17 @@ const App: React.FC = () => {
       {/* Mobile App Container */}
       <div className="w-full max-w-md h-[100dvh] bg-white dark:bg-slate-950 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 flex flex-col overflow-hidden relative text-slate-900 dark:text-slate-100 transition-colors duration-300">
         
-        {/* Subscription Gate */}
-        {!hasAccess && (
+        {/* Paywall Modal (Only shown when explicitly triggered) */}
+        {showPaywall && (
             <SubscriptionModal 
                 status={profile.subscriptionStatus} 
-                onSuccess={handleSubscriptionSuccess} 
+                onSuccess={handleSubscriptionSuccess}
+                onClose={() => setShowPaywall(false)}
             />
         )}
 
         {/* Global Header */}
-        <Header weather={weather} profile={profile} />
+        <Header weather={weather} profile={profile} onLogoClick={handleLogoClick} />
 
         {/* Scrollable Main Content */}
         <main className="flex-1 overflow-y-auto no-scrollbar scroll-smooth bg-white dark:bg-slate-950 relative">
@@ -123,7 +136,7 @@ const App: React.FC = () => {
             className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.DIGEST ? 'text-[#6466f1]' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
             <NewspaperIcon className="w-6 h-6" />
-            <span className="text-[9px] font-medium uppercase tracking-wide">Prehľad</span>
+            <span className="text-[8px] font-medium uppercase tracking-wide">Prehľad</span>
           </button>
 
           <button 
@@ -131,7 +144,7 @@ const App: React.FC = () => {
             className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.HISTORY ? 'text-[#6466f1]' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
             <CollectionIcon className="w-6 h-6" />
-            <span className="text-[9px] font-medium uppercase tracking-wide">Uložené</span>
+            <span className="text-[8px] font-medium uppercase tracking-wide">Uložené</span>
           </button>
           
           <button 
@@ -139,7 +152,7 @@ const App: React.FC = () => {
             className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.TOOLS ? 'text-[#6466f1]' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
             <SearchIcon className="w-6 h-6" />
-            <span className="text-[9px] font-medium uppercase tracking-wide">Nástroje</span>
+            <span className="text-[8px] font-medium uppercase tracking-wide">Nástroje</span>
           </button>
 
           <button 
@@ -147,7 +160,7 @@ const App: React.FC = () => {
             className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.SETTINGS ? 'text-[#6466f1]' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
             <SettingsIcon className="w-6 h-6" />
-            <span className="text-[9px] font-medium uppercase tracking-wide">Nastavenia</span>
+            <span className="text-[8px] font-medium uppercase tracking-wide">Nastavenia</span>
           </button>
 
         </nav>

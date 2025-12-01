@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AVAILABLE_TOPICS, PERSONA_UI_DATA } from '../constants';
-import { getSelectedTopicIds, saveSelectedTopicIds, getUserProfile, setPersona, saveUserProfile, toggleTheme, redeemSecretCode } from '../services/storageService';
-import { CheckIcon, UserIcon, SparklesIcon, MapPinIcon, ChevronDownIcon, ChevronUpIcon, SettingsIcon, XIcon, MoonIcon, SunIcon, BellIcon } from '../components/Icons';
+import { getSelectedTopicIds, saveSelectedTopicIds, getUserProfile, setPersona, saveUserProfile, toggleTheme, redeemSecretCode, exportUserData, importUserData, hardResetApp } from '../services/storageService';
+import { CheckIcon, UserIcon, SparklesIcon, MapPinIcon, ChevronDownIcon, ChevronUpIcon, SettingsIcon, XIcon, MoonIcon, SunIcon, BellIcon, CloudIcon, TrashIcon } from '../components/Icons';
 import { PersonaType, NotificationFrequency, SubscriptionStatus } from '../types';
 import { requestNotificationPermission } from '../services/notificationService';
 
@@ -37,6 +37,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish, onThemeChange }) 
   const [secretCode, setSecretCode] = useState('');
   const [secretMessage, setSecretMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   const [subStatus, setSubStatus] = useState<SubscriptionStatus>(SubscriptionStatus.TRIAL);
+
+  // File Upload Ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const profile = getUserProfile();
@@ -103,10 +106,52 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish, onThemeChange }) 
       if (success) {
           setSecretMessage({ type: 'success', text: 'Kód prijatý! Máte doživotný prístup.' });
           setSubStatus(SubscriptionStatus.LIFETIME);
-          // Reload page logic/app state might be needed, handled by App checking profile on tab change
       } else {
           setSecretMessage({ type: 'error', text: 'Neplatný kód.' });
       }
+  };
+
+  const handleHardReset = () => {
+      if (confirm('POZOR: Toto vymaže všetky vaše nastavenia, históriu, uložené články a poznámky. Aplikácia sa resetuje do pôvodného stavu. Pokračovať?')) {
+          hardResetApp();
+      }
+  };
+
+  // --- DATABASE FUNCTIONS ---
+  const handleExportData = () => {
+     const dataStr = exportUserData();
+     const blob = new Blob([dataStr], { type: "application/json" });
+     const url = URL.createObjectURL(blob);
+     const link = document.createElement("a");
+     link.href = url;
+     link.download = `ai_digest_backup_${new Date().toISOString().split('T')[0]}.json`;
+     document.body.appendChild(link);
+     link.click();
+     document.body.removeChild(link);
+  };
+
+  const handleImportClick = () => {
+      fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+          const content = event.target?.result as string;
+          if (content) {
+              const success = importUserData(content);
+              if (success) {
+                  alert('Dáta boli úspešne obnovené. Aplikácia sa reštartuje.');
+                  window.location.reload();
+              } else {
+                  alert('Chyba pri obnove dát. Súbor môže byť poškodený.');
+              }
+          }
+      };
+      reader.readAsText(file);
   };
 
   const toggleCategory = (category: string) => {
@@ -126,7 +171,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish, onThemeChange }) 
     return acc;
   }, {} as Record<string, typeof AVAILABLE_TOPICS>);
 
-  const topTopicIds = ['slovakia_domestic', 'ai_tech', 'science', 'sports_marketing', 'politics', 'health_longevity', 'sport_football'];
+  const topTopicIds = ['slovakia_domestic', 'new_ai_models', 'science', 'sports_marketing', 'politics', 'health_longevity', 'sport_football'];
   const topTopics = AVAILABLE_TOPICS.filter(t => topTopicIds.includes(t.id));
 
   return (
@@ -295,7 +340,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish, onThemeChange }) 
       {showProfileModal && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowProfileModal(false)}></div>
-            <div className="bg-white dark:bg-slate-900 w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl relative z-10 animate-in zoom-in-95 duration-200">
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl relative z-10 animate-in zoom-in-95 duration-200 no-scrollbar">
                
                <div className="bg-slate-50 dark:bg-slate-950 p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center sticky top-0 z-20">
                   <h3 className="font-bold text-slate-900 dark:text-white">Profil a preferencie</h3>
@@ -381,6 +426,56 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish, onThemeChange }) 
                     </div>
                   </div>
 
+                  {/* DATA BACKUP & RESTORE */}
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+                        <CloudIcon className="w-3.5 h-3.5 text-[#6466f1]" />
+                        SPRÁVA DÁT
+                     </label>
+                     <div className="flex gap-2">
+                        <button 
+                           onClick={handleExportData}
+                           className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                        >
+                           Zálohovať
+                        </button>
+                        <button 
+                           onClick={handleImportClick}
+                           className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                        >
+                           Obnoviť
+                        </button>
+                        <input 
+                           type="file" 
+                           ref={fileInputRef} 
+                           onChange={handleFileChange} 
+                           accept=".json" 
+                           className="hidden" 
+                        />
+                     </div>
+                  </div>
+
+                  {/* MANDATORY LEGAL & SUPPORT (App Store) */}
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">PRÁVNE INFORMÁCIE</label>
+                     <div className="grid grid-cols-2 gap-2 text-xs">
+                        <a href="#" className="text-slate-600 dark:text-slate-300 hover:text-[#6466f1] p-2 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-100 dark:border-slate-800 text-center">Podmienky (EULA)</a>
+                        <a href="#" className="text-slate-600 dark:text-slate-300 hover:text-[#6466f1] p-2 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-100 dark:border-slate-800 text-center">Ochrana súkromia</a>
+                        <a href="#" className="col-span-2 text-slate-600 dark:text-slate-300 hover:text-[#6466f1] p-2 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-100 dark:border-slate-800 text-center">Kontaktovať podporu</a>
+                     </div>
+                  </div>
+
+                  {/* DANGER ZONE (Delete Account/Data) */}
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+                     <button 
+                       onClick={handleHardReset}
+                       className="w-full flex items-center justify-center gap-2 text-red-500 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/30 font-bold py-2 rounded-lg text-xs transition-colors"
+                     >
+                       <TrashIcon className="w-3.5 h-3.5" />
+                       Vymazať všetky dáta
+                     </button>
+                  </div>
+
                   <div className="pt-2">
                      <button 
                        onClick={() => setShowProfileModal(false)}
@@ -394,12 +489,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish, onThemeChange }) 
                   {subStatus !== SubscriptionStatus.LIFETIME && (
                     <div className="pt-1 text-center border-t border-slate-50 dark:border-slate-800 mt-2">
                         {!showSecretInput ? (
-                            <button 
-                                onClick={() => setShowSecretInput(true)}
-                                className="text-[9px] font-bold text-slate-300 dark:text-slate-700 uppercase tracking-widest hover:text-indigo-400 transition-colors py-2"
-                            >
-                                Mám kód
-                            </button>
+                            <div className="flex justify-center items-center px-2">
+                                <button 
+                                    onClick={() => setShowSecretInput(true)}
+                                    className="text-[9px] font-bold text-slate-300 dark:text-slate-700 uppercase tracking-widest hover:text-indigo-400 transition-colors py-2"
+                                >
+                                    Mám kód
+                                </button>
+                            </div>
                         ) : (
                             <div className="animate-in fade-in slide-in-from-bottom-2 pt-2">
                                 <div className="flex gap-2 mb-2">

@@ -126,6 +126,11 @@ export const getUserProfile = (): UserProfile => {
         parsed.subscriptionPlan = SubscriptionPlan.NONE;
         parsed.trialStartDate = Date.now();
     }
+
+    // Initialize Completed Topics if missing
+    if (!parsed.completedLearningTopics) {
+        parsed.completedLearningTopics = [];
+    }
     
     return parsed;
   }
@@ -135,18 +140,41 @@ export const getUserProfile = (): UserProfile => {
     totalDigests: 0,
     selectedPersona: PersonaType.DEFAULT,
     city: 'Bratislava',
-    theme: 'light',
+    theme: 'light', // Default to light
     notificationFrequency: NotificationFrequency.DAILY,
     lastNotification: 0,
     // New Subscription Defaults
     subscriptionStatus: SubscriptionStatus.TRIAL,
     subscriptionPlan: SubscriptionPlan.NONE,
-    trialStartDate: Date.now()
+    trialStartDate: Date.now(),
+    completedLearningTopics: []
   };
 };
 
 export const saveUserProfile = (profile: UserProfile) => {
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+};
+
+export const markLearningTopicComplete = (topic: string) => {
+    const profile = getUserProfile();
+    // Case insensitive check
+    if (!profile.completedLearningTopics.some(t => t.toLowerCase() === topic.toLowerCase())) {
+        saveUserProfile({
+            ...profile,
+            completedLearningTopics: [...profile.completedLearningTopics, topic]
+        });
+    }
+};
+
+export const getTrialDaysLeft = (): number => {
+    const profile = getUserProfile();
+    if (profile.subscriptionStatus !== SubscriptionStatus.TRIAL) return 0;
+    
+    const now = Date.now();
+    const trialLength = 7 * 24 * 60 * 60 * 1000;
+    const diff = now - profile.trialStartDate;
+    const remaining = Math.max(0, Math.ceil((trialLength - diff) / (24 * 60 * 60 * 1000)));
+    return remaining;
 };
 
 // Check if user has access
@@ -155,8 +183,7 @@ export const checkSubscriptionAccess = (): boolean => {
     
     if (profile.subscriptionStatus === SubscriptionStatus.LIFETIME) return true;
     if (profile.subscriptionStatus === SubscriptionStatus.ACTIVE) {
-        // Check expiry if we were implementing real dates
-        // For now, active is active.
+        // In real app, check receipt expiry date here
         return true;
     }
 
@@ -202,6 +229,18 @@ export const redeemSecretCode = (code: string): boolean => {
     return false;
 };
 
+// TESTING HELPER: Force expire the trial to test UI
+export const simulateTrialExpiry = () => {
+    const profile = getUserProfile();
+    // Set start date to 8 days ago
+    const pastDate = Date.now() - (8 * 24 * 60 * 60 * 1000);
+    saveUserProfile({
+        ...profile,
+        subscriptionStatus: SubscriptionStatus.TRIAL, // Will be auto-converted to EXPIRED on check
+        trialStartDate: pastDate
+    });
+};
+
 
 export const updateStreak = () => {
   const profile = getUserProfile();
@@ -244,4 +283,37 @@ export const toggleTheme = () => {
 export const updateLastNotification = () => {
   const profile = getUserProfile();
   saveUserProfile({ ...profile, lastNotification: Date.now() });
+};
+
+// --- DATA BACKUP & RESTORE (The "Database" Feature) ---
+
+export const exportUserData = (): string => {
+  const data = {
+    profile: getUserProfile(),
+    topics: getSelectedTopicIds(),
+    savedInsights: getSavedInsights(),
+    notes: getNotes(),
+    // We generally don't export digest history to keep file size small, but can if needed
+  };
+  return JSON.stringify(data);
+};
+
+export const importUserData = (jsonString: string): boolean => {
+  try {
+    const data = JSON.parse(jsonString);
+    if (data.profile) saveUserProfile(data.profile);
+    if (data.topics) saveSelectedTopicIds(data.topics);
+    if (data.savedInsights) localStorage.setItem(COLLECTION_KEY, JSON.stringify(data.savedInsights));
+    if (data.notes) localStorage.setItem(NOTES_KEY, JSON.stringify(data.notes));
+    return true;
+  } catch (e) {
+    console.error("Import failed", e);
+    return false;
+  }
+};
+
+// --- HARD RESET (Account Deletion Compliance) ---
+export const hardResetApp = () => {
+    localStorage.clear();
+    window.location.reload();
 };

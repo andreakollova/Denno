@@ -92,6 +92,8 @@ export interface UserProfile {
   subscriptionPlan: SubscriptionPlan;
   trialStartDate: number;
   subscriptionExpiryDate?: number;
+  // Learning Progress
+  completedLearningTopics: string[];
 }
 
 export interface LearningPack {
