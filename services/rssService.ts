@@ -10,28 +10,30 @@ interface ProxyConfig {
 }
 
 // Ordered list of proxies to try
-// Switched AllOrigins to first as it returns JSON and handles encoding well
 const PROXIES: ProxyConfig[] = [
   {
     name: 'AllOrigins',
-    getUrl: (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    getUrl: (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&t=${Date.now()}`,
     extract: async (res) => {
       const json = await res.json();
       if (!json.contents) throw new Error('AllOrigins: No content returned');
       return json.contents;
-    }
+    },
+  },
+  {
+    name: 'CorsProxy',
+    getUrl: (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    extract: (res) => res.text(),
   },
   {
     name: 'CodeTabs',
     getUrl: (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    extract: (res) => res.text()
-  },
-  {
-    name: 'ThingProxy',
-    getUrl: (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
-    extract: (res) => res.text()
+    extract: (res) => res.text(),
   }
 ];
+
+// Helper to pause execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Helper to fetch text content using fallback proxies
 export const fetchTextWithFallback = async (url: string): Promise<string | null> => {
@@ -39,23 +41,24 @@ export const fetchTextWithFallback = async (url: string): Promise<string | null>
     try {
       const proxyUrl = proxy.getUrl(url);
       const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), 15000); // Increased timeout to 15s
+      // Increased timeout to 15s for slow connections/proxies
+      const id = setTimeout(() => controller.abort(), 15000); 
 
-      const response = await fetch(proxyUrl, { 
-        signal: controller.signal
+      const response = await fetch(proxyUrl, {
+        signal: controller.signal,
       });
       clearTimeout(id);
-      
+
       if (response.ok) {
         const text = await proxy.extract(response);
         // Basic validation - ensure we got something resembling HTML/XML
-        if (text && text.length > 50) { 
+        if (text && (text.includes('<rss') || text.includes('<feed') || text.includes('<xml') || text.includes('<?xml'))) {
           return text;
         }
       }
     } catch (e) {
-      console.warn(`[RSS] Proxy ${proxy.name} failed for ${url}`);
-      // Continue to next proxy
+      // Proxy failed, try next
+      // console.warn(`Proxy ${proxy.name} failed for ${url}`);
     }
   }
   return null;
@@ -65,7 +68,7 @@ export const fetchTextWithFallback = async (url: string): Promise<string | null>
 const fetchWithRss2Json = async (url: string, sourceName: string): Promise<Article[]> => {
   try {
     // rss2json is very reliable for blocked feeds like Slovak news
-    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`;
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`; 
     const response = await fetch(apiUrl);
     const data = await response.json();
 
@@ -76,8 +79,8 @@ const fetchWithRss2Json = async (url: string, sourceName: string): Promise<Artic
         link: item.link,
         published: item.pubDate || new Date().toISOString(),
         source: sourceName,
-        rawDate: item.pubDate ? new Date(item.pubDate) : new Date(), // Safe date parsing
-        imageUrl: item.thumbnail || item.enclosure?.link
+        rawDate: item.pubDate ? new Date(item.pubDate) : new Date(),
+        imageUrl: undefined,
       }));
     }
   } catch (e) {
@@ -90,139 +93,123 @@ const parseXML = (xmlText: string, sourceName: string): Article[] => {
   try {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-    
+
     // Check for parser errors
     const parserError = xmlDoc.querySelector("parsererror");
     if (parserError) {
-        console.warn(`[RSS] XML Parsing error for ${sourceName}`);
-        return [];
+      return [];
     }
 
     const articles: Article[] = [];
     const now = new Date();
-    // Extended to 72 hours window
-    const timeLimit = new Date(now.getTime() - 72 * 60 * 60 * 1000);
+    // Extended to 120 hours (5 days)
+    const timeLimit = new Date(now.getTime() - 120 * 60 * 60 * 1000);
 
     const getText = (parent: Element, selector: string) => {
-        const el = parent.querySelector(selector);
-        return el ? el.textContent || "" : "";
+      let el = parent.querySelector(selector);
+      if (!el) {
+          const els = parent.getElementsByTagNameNS("*", selector);
+          if (els.length > 0) el = els[0];
+      }
+      return el ? el.textContent || "" : "";
     };
 
     const getDate = (parent: Element) => {
-        const dateStr = getText(parent, "pubDate") || getText(parent, "published") || getText(parent, "updated") || getText(parent, "date");
-        if (!dateStr) return null;
-        const d = new Date(dateStr);
-        return isNaN(d.getTime()) ? null : d;
+      const dateStr = getText(parent, "pubDate") || getText(parent, "published") || getText(parent, "updated") || getText(parent, "date");
+      if (!dateStr) return null;
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? null : d;
     };
 
-    // Helper to process a node (item or entry)
     const processNode = (node: Element) => {
-        const title = getText(node, "title");
-        
-        let summary = "";
-        const contentEncoded = node.getElementsByTagNameNS("*", "encoded")[0];
-        if (contentEncoded) {
-            summary = contentEncoded.textContent || "";
-        } else {
-            summary = getText(node, "description") || getText(node, "summary") || getText(node, "content");
-        }
+      const title = getText(node, "title");
 
-        let link = getText(node, "link");
-        if (!link) {
-            const linkNode = node.querySelector("link");
-            if (linkNode) link = linkNode.getAttribute("href") || "";
-        }
+      let summary = "";
+      const contentEncoded = node.getElementsByTagNameNS("*", "encoded")[0];
+      if (contentEncoded) {
+        summary = contentEncoded.textContent || "";
+      } else {
+        summary = getText(node, "description") || getText(node, "summary") || getText(node, "content");
+      }
 
-        // Image Extraction Logic
-        let imageUrl: string | undefined;
-        
-        // 1. Check <enclosure>
-        const enclosure = node.querySelector("enclosure");
-        if (enclosure && enclosure.getAttribute("type")?.startsWith("image")) {
-          imageUrl = enclosure.getAttribute("url") || undefined;
-        }
+      let link = getText(node, "link");
+      if (!link) {
+        const linkNode = node.querySelector("link");
+        if (linkNode) link = linkNode.getAttribute("href") || "";
+      }
+      if (!link) {
+         const links = Array.from(node.getElementsByTagName("link"));
+         const altLink = links.find(l => l.getAttribute("rel") === "alternate") || links[0];
+         if (altLink) link = altLink.getAttribute("href") || altLink.textContent || "";
+      }
 
-        // 2. Check <media:content>
-        if (!imageUrl) {
-          const mediaContent = node.getElementsByTagNameNS("*", "content")[0] || node.getElementsByTagNameNS("*", "thumbnail")[0];
-          if (mediaContent) {
-            imageUrl = mediaContent.getAttribute("url") || undefined;
-          }
-        }
+      const pubDate = getDate(node);
+      const effectiveDate = pubDate || new Date(); 
 
-        // 3. Check HTML content
-        if (!imageUrl) {
-           const imgMatch = summary.match(/<img[^>]+src=["']([^"']+)["']/i);
-           if (imgMatch) {
-             imageUrl = imgMatch[1];
-           }
-        }
+      if (!title) return null;
 
-        const pubDate = getDate(node);
-        const effectiveDate = pubDate || new Date(); // Default to now if missing
+      const cleanSummary = summary
+        .replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1')
+        .replace(/<[^>]*>?/gm, '')
+        .replace(/\s+/g, ' ')
+        .substring(0, 500)
+        .trim();
 
-        if (!title) return null;
-
-        const cleanSummary = summary
-            .replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1')
-            .replace(/<[^>]*>?/gm, '')
-            .replace(/\s+/g, ' ')
-            .substring(0, 500)
-            .trim();
-
-        return {
-            title: title.trim(),
-            summary: cleanSummary || title,
-            link: link,
-            published: effectiveDate.toISOString(), 
-            source: sourceName,
-            rawDate: effectiveDate,
-            imageUrl
-        };
+      return {
+        title: title.trim(),
+        summary: cleanSummary || title,
+        link: link,
+        published: effectiveDate.toISOString(),
+        source: sourceName,
+        rawDate: effectiveDate,
+        imageUrl: undefined,
+      };
     };
+
+    // Robust node selection (handles namespaces)
+    const itemNodes = Array.from(xmlDoc.getElementsByTagName("item"));
+    const entryNodes = Array.from(xmlDoc.getElementsByTagName("entry"));
+    const nsItemNodes = itemNodes.length === 0 ? Array.from(xmlDoc.getElementsByTagNameNS("*", "item")) : [];
+    const nsEntryNodes = entryNodes.length === 0 ? Array.from(xmlDoc.getElementsByTagNameNS("*", "entry")) : [];
 
     const nodes = [
-        ...Array.from(xmlDoc.querySelectorAll("item")), 
-        ...Array.from(xmlDoc.querySelectorAll("entry"))
+      ...itemNodes,
+      ...entryNodes,
+      ...nsItemNodes,
+      ...nsEntryNodes
     ];
 
-    const parsedItems = nodes.map(processNode).filter(item => item !== null) as any[];
+    const parsedItems = nodes.map(processNode).filter((item) => item !== null) as any[];
 
-    // Filter Logic
-    parsedItems.forEach(item => {
-        if (item.rawDate > timeLimit) {
-            articles.push(item);
-        }
+    parsedItems.forEach((item) => {
+      if (item.rawDate > timeLimit) {
+        articles.push(item);
+      }
     });
 
-    // Fallback: If filtering removed everything (e.g. bad dates), take top 5
+    // Fallback: If filtering removed everything, force take top 5
     if (articles.length === 0 && parsedItems.length > 0) {
-        parsedItems.slice(0, 5).forEach(item => articles.push(item));
+      parsedItems.slice(0, 5).forEach((item) => articles.push(item));
     }
 
     return articles;
   } catch (e) {
-    console.error(`[RSS] Error parsing XML for ${sourceName}`, e);
     return [];
   }
 };
 
 const fetchRssFeed = async (url: string, sourceName: string): Promise<Article[]> => {
-  // Strategy: 
-  // 1. Try text proxies (good for standard feeds)
-  // 2. If text proxies fail, try rss2json (good for stubborn/blocked feeds)
-  
   let articles: Article[] = [];
 
-  // Try parsing via proxies first
+  // 1. Try parsing via proxies first
   const xmlContent = await fetchTextWithFallback(url);
   if (xmlContent) {
     articles = parseXML(xmlContent, sourceName);
   }
 
-  // If proxies yielded nothing, or failed, try rss2json
+  // 2. If proxies yielded nothing or parsing failed completely, try rss2json
+  // This is a crucial fallback for sites that block standard proxies
   if (articles.length === 0) {
-    console.log(`[RSS] Proxies empty/failed for ${sourceName}, trying RSS2JSON...`);
     const fallbackArticles = await fetchWithRss2Json(url, sourceName);
     if (fallbackArticles.length > 0) {
       return fallbackArticles;
@@ -232,24 +219,52 @@ const fetchRssFeed = async (url: string, sourceName: string): Promise<Article[]>
   return articles;
 };
 
+// Helper function to process promises in batches with throttling
+async function processInBatches<T, R>(
+  items: T[],
+  batchSize: number,
+  processFn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    
+    // Process batch in parallel
+    const batchResults = await Promise.all(batch.map(processFn));
+    results.push(...batchResults);
+
+    // Add delay between batches to avoid rate limiting (429 Too Many Requests)
+    if (i + batchSize < items.length) {
+        await delay(1000); // 1 second delay
+    }
+  }
+  return results;
+}
+
 export const fetchArticlesForTopics = async (topicIds: string[]): Promise<Article[]> => {
-  const selectedTopics = AVAILABLE_TOPICS.filter(t => topicIds.includes(t.id));
-  
-  // Fetch all feeds in parallel
-  const results = await Promise.all(
-    selectedTopics.flatMap(topic => 
-      topic.rssUrls.map(async (url) => {
-        return fetchRssFeed(url, topic.name);
-      })
-    )
+  const selectedTopics = AVAILABLE_TOPICS.filter((t) => topicIds.includes(t.id));
+
+  // Flatten all URLs to be fetched
+  const tasks = selectedTopics.flatMap(topic => 
+    topic.rssUrls.map(url => ({ url, name: topic.name }))
   );
+
+  // Use smaller batch size (3) and throttling to be gentle on proxies
+  const results = await processInBatches(tasks, 3, async (task) => {
+    try {
+        return await fetchRssFeed(task.url, task.name);
+    } catch (e) {
+        return [];
+    }
+  });
 
   const allArticles = results.flat();
 
-  // Deduplication
+  // Deduplication based on normalized title
   const seen = new Set();
-  return allArticles.filter(a => {
+  return allArticles.filter((a) => {
     const normalizedTitle = a.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (normalizedTitle.length < 5) return false; 
     if (seen.has(normalizedTitle)) return false;
     seen.add(normalizedTitle);
     return true;

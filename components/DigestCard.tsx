@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { DigestSection } from '../types';
-import { ChatIcon, BookmarkIcon, BookmarkSolidIcon } from './Icons';
+import { ChatIcon, BookmarkIcon, BookmarkSolidIcon, ExternalLinkIcon } from './Icons';
 
 interface DigestCardProps {
   section: DigestSection;
@@ -14,6 +14,18 @@ interface DigestCardProps {
 }
 
 const DigestCard: React.FC<DigestCardProps> = ({ section, index, onAskMore, onTagClick, onToggleSave, isSaved, className = "mb-8" }) => {
+  
+  // Helper to extract domain for display
+  const getDomain = (url?: string) => {
+    if (!url) return '';
+    try {
+      const hostname = new URL(url).hostname;
+      return hostname.replace('www.', '');
+    } catch {
+      return 'zdroj';
+    }
+  };
+
   return (
     <div className={`bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden transition-all duration-300 hover:shadow-xl group ${className}`}>
       
@@ -56,7 +68,7 @@ const DigestCard: React.FC<DigestCardProps> = ({ section, index, onAskMore, onTa
       </div>
 
       {/* Content */}
-      <div className="px-6 pb-6 pt-6 space-y-5">
+      <div className="px-6 py-6 space-y-5">
         
         {/* Title */}
         <h3 className="text-xl font-bold text-slate-900 leading-tight">
@@ -114,16 +126,32 @@ const DigestCard: React.FC<DigestCardProps> = ({ section, index, onAskMore, onTa
             </div>
           )
         )}
+      </div>
+      
+      {/* Footer Actions */}
+      <div className="px-6 pb-6 pt-2 flex flex-col gap-2">
+         {/* Source Link */}
+         {section.sourceLink && (
+           <a 
+             href={section.sourceLink} 
+             target="_blank" 
+             rel="noopener noreferrer"
+             className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-wider self-start mb-2"
+           >
+             <ExternalLinkIcon className="w-3 h-3" />
+             Zdroj: {getDomain(section.sourceLink)}
+           </a>
+         )}
 
-        {onAskMore && (
-          <button 
-            onClick={() => onAskMore(section)}
-            className="w-full mt-2 flex items-center justify-center gap-2 py-3 rounded-2xl border border-indigo-100 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 font-bold text-sm transition-colors"
-          >
-            <ChatIcon className="w-4 h-4" />
-            Vysvetliť / Opýtať sa AI
-          </button>
-        )}
+         {onAskMore && (
+            <button 
+              onClick={() => onAskMore(section)}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-indigo-100 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 font-bold text-sm transition-colors"
+            >
+              <ChatIcon className="w-4 h-4" />
+              Vysvetliť / Opýtať sa AI
+            </button>
+          )}
       </div>
     </div>
   );

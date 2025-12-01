@@ -3,51 +3,72 @@ import { Topic, PersonaType } from './types';
 
 // Predefined list of topics with reliable RSS feeds
 export const AVAILABLE_TOPICS: Topic[] = [
-  // --- Kategória: Slovensko (Domáce dianie) ---
+  // --- Kategória: Slovensko ---
   {
-    id: 'slovakia_news',
-    name: 'Aktuality & Domáce dianie',
-    category: 'Slovensko (Domáce dianie)',
+    id: 'slovakia_domestic',
+    name: 'Domáce správy',
+    category: 'Slovensko',
     rssUrls: [
-      'https://www.aktuality.sk/rss/',
+      'https://www.aktuality.sk/rss/domace/',
       'https://domov.sme.sk/rss/rss.xml',
-      'https://dennikn.sk/feed/'
+      'https://dennikn.sk/slovensko/feed'
+    ]
+  },
+  {
+    id: 'slovakia_world',
+    name: 'Aktuality zo sveta',
+    category: 'Slovensko',
+    rssUrls: [
+      'https://www.aktuality.sk/rss/zahranicne/',
+      'https://svet.sme.sk/rss/rss.xml',
+      'https://dennikn.sk/svet/feed'
     ]
   },
   {
     id: 'slovakia_economy',
-    name: 'Slovenská Ekonomika & Biznis',
-    category: 'Slovensko (Domáce dianie)',
+    name: 'Slovenská ekonomika a biznis',
+    category: 'Slovensko',
     rssUrls: [
       'https://index.sme.sk/rss/rss.xml',
-      'https://www.trend.sk/rss/vsetko'
+      'https://www.trend.sk/rss/vsetko',
+      'https://www.aktuality.sk/rss/ekonomika/'
     ]
   },
 
-  // --- Kategória: AI & Tech Core ---
+  // --- Kategória: Veda a Budúcnosť ---
+  {
+    id: 'medicine',
+    name: 'Medicína a medicínske tech',
+    category: 'Veda a Budúcnosť',
+    rssUrls: [
+      'https://www.medicalnewstoday.com/feed',
+      'https://www.sciencedaily.com/rss/health_medicine.xml',
+      'https://techcrunch.com/category/biotech-health/feed/'
+    ]
+  },
   {
     id: 'new_ai_models',
-    name: 'Nové AI Modely (SOTA)',
-    category: 'AI & Tech Core',
+    name: 'Nové AI modely (SOTA)',
+    category: 'Veda a Budúcnosť',
     rssUrls: [
       'https://huggingface.co/blog/feed.xml',
-      'https://simonwillison.net/atom/ab/', // Good aggregator for LLM releases
+      'https://simonwillison.net/atom/ab/',
       'https://openai.com/blog/rss.xml'
     ]
   },
   {
-    id: 'ai_tech',
-    name: 'Všeobecné AI & Tech',
-    category: 'AI & Tech Core',
+    id: 'science',
+    name: 'Veda a inovácie',
+    category: 'Veda a Budúcnosť',
     rssUrls: [
-      'https://techcrunch.com/category/artificial-intelligence/feed/',
-      'https://www.theverge.com/rss/index.xml'
+      'https://www.sciencedaily.com/rss/top_news.xml',
+      'https://www.wired.com/feed/category/science/latest/rss'
     ]
   },
   {
     id: 'quantum',
     name: 'Kvantové počítanie',
-    category: 'AI & Tech Core',
+    category: 'Veda a Budúcnosť',
     rssUrls: [
       'https://thequantuminsider.com/feed/',
       'https://www.sciencedaily.com/rss/computers_math/quantum_computers.xml'
@@ -55,8 +76,8 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'ar_vr',
-    name: 'AR/VR & Spatial Computing',
-    category: 'AI & Tech Core',
+    name: 'AR/VR a spatial computing',
+    category: 'Veda a Budúcnosť',
     rssUrls: [
       'https://uploadvr.com/feed',
       'https://www.roadtovr.com/feed/'
@@ -65,10 +86,128 @@ export const AVAILABLE_TOPICS: Topic[] = [
   {
     id: 'robotics',
     name: 'Robotika',
-    category: 'AI & Tech Core',
+    category: 'Veda a Budúcnosť',
     rssUrls: [
       'https://spectrum.ieee.org/rss/robotics/fulltext',
       'https://www.sciencedaily.com/rss/computers_math/robotics.xml'
+    ]
+  },
+  {
+    id: 'space',
+    name: 'Vesmír a letectvo',
+    category: 'Veda a Budúcnosť',
+    rssUrls: [
+      'https://www.space.com/feeds/all',
+      'https://spacenews.com/feed/'
+    ]
+  },
+  {
+    id: 'renewable_energy',
+    name: 'Obnoviteľné zdroje',
+    category: 'Veda a Budúcnosť',
+    rssUrls: [
+      'https://cleantechnica.com/feed/',
+      'https://www.renewableenergyworld.com/feed/'
+    ]
+  },
+  {
+    id: 'food_tech',
+    name: 'Food tech',
+    category: 'Veda a Budúcnosť',
+    rssUrls: [
+      'https://thespoon.tech/feed/',
+      'https://www.foodnavigator.com/RSS/Feed/LN/Daily-News'
+    ]
+  },
+
+  // --- Kategória: Šport a Zábava ---
+  {
+    id: 'sport_repre',
+    name: 'Slovenská reprezentácia',
+    category: 'Šport a Zábava',
+    rssUrls: [
+      'https://sport.aktuality.sk/rss/reprezentacia/',
+      'https://sport.sme.sk/rss/rss.xml'
+    ]
+  },
+  {
+    id: 'sport_football',
+    name: 'Futbal',
+    category: 'Šport a Zábava',
+    rssUrls: [
+      'https://sport.aktuality.sk/rss/futbal/',
+      'https://www.goal.com/feeds/en/news',
+      'https://www.skysports.com/rss/12040'
+    ]
+  },
+  {
+    id: 'sport_hockey',
+    name: 'Hokej',
+    category: 'Šport a Zábava',
+    rssUrls: [
+      'https://sport.aktuality.sk/rss/hokej/',
+      'https://www.nhl.com/rss/news',
+      'https://www.tsn.ca/rss/nhl'
+    ]
+  },
+  {
+    id: 'sport_basketball',
+    name: 'Basketbal',
+    category: 'Šport a Zábava',
+    rssUrls: [
+      'https://www.nba.com/rss/nba_rss.xml',
+      'https://www.eurohoops.net/feed/',
+      'https://www.espn.com/espn/rss/nba/news'
+    ]
+  },
+  {
+    id: 'f1_motorsport',
+    name: 'F1 a motoršport',
+    category: 'Šport a Zábava',
+    rssUrls: [
+      'https://www.autosport.com/rss/feed/f1',
+      'https://www.motorsport.com/rss/f1/news/'
+    ]
+  },
+  {
+    id: 'gaming',
+    name: 'Gaming a e-športy',
+    category: 'Šport a Zábava',
+    rssUrls: [
+      'https://kotaku.com/rss',
+      'https://www.polygon.com/rss/index.xml',
+      'https://www.ign.com/rss/articles/feed'
+    ]
+  },
+  {
+    id: 'womens_sports',
+    name: 'Ženy v športe',
+    category: 'Šport a Zábava',
+    rssUrls: [
+      'https://justwomenssports.com/feed/',
+      'https://feeds.theguardian.com/theguardian/sport/womens-sport/rss'
+    ]
+  },
+  // MOVED TO LAST PLACE IN CATEGORY
+  {
+    id: 'sports_biz',
+    name: 'Športový biznis a tech',
+    category: 'Šport a Zábava',
+    rssUrls: [
+      'https://www.sportspromedia.com/feed/',
+      'https://frontofficesports.com/feed/',
+      'https://www.sporttechie.com/feed/'
+    ]
+  },
+
+  // --- Kategória: Ostatné (Tech, Biznis, Lifestyle) ---
+  {
+    id: 'ai_tech',
+    name: 'Všeobecné AI a tech',
+    category: 'AI & Tech Core',
+    rssUrls: [
+      'https://techcrunch.com/category/artificial-intelligence/feed/',
+      'https://www.theverge.com/rss/index.xml'
     ]
   },
   {
@@ -91,18 +230,16 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'smart_home',
-    name: 'Smart Home & IoT',
+    name: 'Smart home a IoT',
     category: 'AI & Tech Core',
     rssUrls: [
       'https://staceyoniot.com/feed/',
       'https://www.iotworldtoday.com/rss.xml'
     ]
   },
-
-  // --- Kategória: Biznis & Ekonomika ---
   {
     id: 'business_startups',
-    name: 'Biznis & Startupy',
+    name: 'Biznis a startupy',
     category: 'Biznis & Práca',
     rssUrls: [
       'https://feeds.feedburner.com/entrepreneur/latest',
@@ -111,7 +248,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'economy',
-    name: 'Ekonomika & Trhy',
+    name: 'Ekonomika a trhy',
     category: 'Biznis & Práca',
     rssUrls: [
       'https://www.economist.com/finance-and-economics/rss.xml',
@@ -120,34 +257,26 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'investing',
-    name: 'Osobné financie & Investovanie',
+    name: 'Osobné financie a investovanie',
     category: 'Biznis & Práca',
     rssUrls: [
       'https://www.kiplinger.com/feed',
-      'https://www.investopedia.com/feedbuilder/feed/public/reviews_feed' // Often general financial news
+      'https://www.investopedia.com/feedbuilder/feed/public/reviews_feed'
     ]
   },
   {
     id: 'creator_economy',
-    name: 'Creator Economy',
+    name: 'Creator economy',
     category: 'Biznis & Práca',
     rssUrls: [
       'https://techcrunch.com/tag/creator-economy/feed/',
       'https://www.theinformation.com/rss/creator-economy.xml'
     ]
   },
-  {
-    id: 'future_work',
-    name: 'Budúcnosť práce (Remote/Auto)',
-    category: 'Biznis & Práca',
-    rssUrls: [
-      'https://www.forbes.com/leadership/feed/',
-      'https://workplaceinsight.net/feed/'
-    ]
-  },
+  // "Budúcnosť práce" REMOVED
   {
     id: 'productivity',
-    name: 'Produktivita & Work Trends',
+    name: 'Produktivita a work trends',
     category: 'Biznis & Práca',
     rssUrls: [
       'https://lifehacker.com/rss',
@@ -156,7 +285,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'hr_leadership',
-    name: 'HR & Leadership',
+    name: 'HR a leadership',
     category: 'Biznis & Práca',
     rssUrls: [
       'https://hbr.org/feeds/rss',
@@ -165,15 +294,13 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'real_estate',
-    name: 'Reality & Smart Cities',
+    name: 'Reality a smart cities',
     category: 'Biznis & Práca',
     rssUrls: [
       'https://www.smartcitiesworld.net/rss/news',
       'https://www.inman.com/feed/'
     ]
   },
-
-  // --- Kategória: Spoločnosť & Politika ---
   {
     id: 'politics',
     name: 'Globálna politika',
@@ -185,16 +312,16 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'eu_regulation',
-    name: 'EU Tech Regulácie',
+    name: 'EÚ tech regulácie',
     category: 'Spoločnosť',
     rssUrls: [
-      'https://eur-lex.europa.eu/RSS/feed.xml', // Fallback, usually handled by general tech policy news
+      'https://eur-lex.europa.eu/RSS/feed.xml',
       'https://techcrunch.com/tag/europe/feed/'
     ]
   },
   {
     id: 'culture_media',
-    name: 'Kultúra & Médiá',
+    name: 'Kultúra a médiá',
     category: 'Spoločnosť',
     rssUrls: [
       'https://www.theguardian.com/culture/rss',
@@ -203,56 +330,16 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'education',
-    name: 'Vzdelávanie & Learning',
+    name: 'Vzdelávanie a learning',
     category: 'Spoločnosť',
     rssUrls: [
       'https://www.edutopia.org/feeds/latest',
       'https://thejournal.com/rss-feeds/news.aspx'
     ]
   },
-
-  // --- Kategória: Veda & Budúcnosť ---
-  {
-    id: 'science',
-    name: 'Veda & Inovácie',
-    category: 'Veda & Budúcnosť',
-    rssUrls: [
-      'https://www.sciencedaily.com/rss/top_news.xml',
-      'https://www.wired.com/feed/category/science/latest/rss'
-    ]
-  },
-  {
-    id: 'space',
-    name: 'Vesmír & Letectvo',
-    category: 'Veda & Budúcnosť',
-    rssUrls: [
-      'https://www.space.com/feeds/all',
-      'https://spacenews.com/feed/'
-    ]
-  },
-  {
-    id: 'renewable_energy',
-    name: 'Obnoviteľné zdroje',
-    category: 'Veda & Budúcnosť',
-    rssUrls: [
-      'https://cleantechnica.com/feed/',
-      'https://www.renewableenergyworld.com/feed/'
-    ]
-  },
-  {
-    id: 'food_tech',
-    name: 'Food Tech',
-    category: 'Veda & Budúcnosť',
-    rssUrls: [
-      'https://thespoon.tech/feed/',
-      'https://www.foodnavigator.com/RSS/Feed/LN/Daily-News'
-    ]
-  },
-
-  // --- Kategória: Lifestyle & Zdravie ---
   {
     id: 'health_longevity',
-    name: 'Zdravie & Dlhovekosť',
+    name: 'Zdravie a dlhovekosť',
     category: 'Lifestyle',
     rssUrls: [
       'https://www.medicalnewstoday.com/feed',
@@ -270,16 +357,16 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'psychology',
-    name: 'Psychológia & Rozhodovanie',
+    name: 'Psychológia a rozhodovanie',
     category: 'Lifestyle',
     rssUrls: [
-      'https://fs.blog/feed/', // Farnam Street
+      'https://fs.blog/feed/',
       'https://www.behavioraleconomics.com/feed/'
     ]
   },
   {
     id: 'fitness',
-    name: 'Fitness & Výživa',
+    name: 'Fitness a výživa',
     category: 'Lifestyle',
     rssUrls: [
       'https://www.healthline.com/nutrition/rss.xml',
@@ -288,16 +375,16 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'parenting',
-    name: 'Rodičovstvo & Rodinné Tech',
+    name: 'Rodičovstvo a rodinné tech',
     category: 'Lifestyle',
     rssUrls: [
       'https://www.todaysparent.com/feed/',
-      'https://coolmompicks.com/feed/' // Tech for parents
+      'https://coolmompicks.com/feed/'
     ]
   },
   {
     id: 'travel',
-    name: 'Cestovanie & Hospitality',
+    name: 'Cestovanie a hospitality',
     category: 'Lifestyle',
     rssUrls: [
       'https://skift.com/feed/',
@@ -306,49 +393,11 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'fashion',
-    name: 'Móda & Luxus',
+    name: 'Móda a luxus',
     category: 'Lifestyle',
     rssUrls: [
       'https://www.businessoffashion.com/feeds/news-analysis',
       'https://www.vogue.com/feed/rss'
-    ]
-  },
-
-  // --- Kategória: Zábava & Šport ---
-  {
-    id: 'f1_motorsport',
-    name: 'F1 & Motoršport',
-    category: 'Zábava & Šport',
-    rssUrls: [
-      'https://www.autosport.com/rss/feed/f1',
-      'https://www.motorsport.com/rss/f1/news/'
-    ]
-  },
-  {
-    id: 'sports_biz',
-    name: 'Športový Biznis & Tech',
-    category: 'Zábava & Šport',
-    rssUrls: [
-      'https://www.sportspromedia.com/feed/',
-      'https://frontofficesports.com/feed/'
-    ]
-  },
-  {
-    id: 'womens_sports',
-    name: 'Ženský šport',
-    category: 'Zábava & Šport',
-    rssUrls: [
-      'https://justwomenssports.com/feed/',
-      'https://feeds.theguardian.com/theguardian/sport/womens-sport/rss'
-    ]
-  },
-  {
-    id: 'gaming',
-    name: 'Gaming & E-športy',
-    category: 'Zábava & Šport',
-    rssUrls: [
-      'https://kotaku.com/rss',
-      'https://www.polygon.com/rss/index.xml'
     ]
   }
 ];
@@ -402,6 +451,7 @@ Structure your response to match this JSON schema:
       "whatIsNew": "string (What actually happened)",
       "whatChanged": "string (How is this different from before or what changed)",
       "keyPoints": ["string", "string", "string", "string", "string"] (Exactly 5 bullet points summarizing the whole event),
+      "sourceLink": "string (The EXACT Link URL of the source article used for this section)",
       "tags": ["string", "string"] (Max 2 tags. IMPORTANT: Each tag MUST be a single word. E.g. "Biznis", "AI". No multi-word tags.)
     }
   ]
@@ -414,5 +464,5 @@ Guidelines:
   - Correct: "Nová legislatíva EÚ ovplyvní trh"
   - Incorrect: "Nová Legislatíva EÚ Ovplyvní Trh"
 - Do not include 'Article 1' text.
-- STRICTLY RESPECT SOURCE CONTEXT: If articles come from a specific source category (e.g. Women's Sports), ensure the digest reflects that specific context. Do not mix unrelated topics.
+- STRICTLY RESPECT SOURCE CONTEXT: If articles come from a specific source category (e.g. Women's Sports, Slovak Repre), ensure the digest reflects that specific context. Do not mix unrelated topics.
 `;

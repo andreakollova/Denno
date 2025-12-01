@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { AVAILABLE_TOPICS, PERSONA_UI_DATA } from '../constants';
 import { getSelectedTopicIds, saveSelectedTopicIds, getUserProfile, setPersona, saveUserProfile } from '../services/storageService';
-import { CheckIcon, UserIcon, SparklesIcon, MapPinIcon, ChevronDownIcon, ChevronUpIcon } from '../components/Icons';
+import { CheckIcon, UserIcon, SparklesIcon, MapPinIcon, ChevronDownIcon, ChevronUpIcon, SettingsIcon, XIcon } from '../components/Icons';
 import { PersonaType } from '../types';
 
 interface SettingsPageProps {
@@ -14,6 +14,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
   const [currentPersona, setCurrentPersona] = useState<PersonaType>(PersonaType.DEFAULT);
   const [city, setCity] = useState<string>('');
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     const profile = getUserProfile();
@@ -67,66 +68,23 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
   }, {} as Record<string, typeof AVAILABLE_TOPICS>);
 
   return (
-    <div className="px-6 py-8 pb-32">
+    <div className="px-6 py-8 pb-32 animate-in fade-in">
       
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Nastavenia</h1>
-        <p className="text-slate-500">Prispôsob si svoj denný prehľad.</p>
+      <header className="mb-6 flex justify-between items-center">
+        <div>
+           <h1 className="text-3xl font-bold text-slate-900 mb-1">Nastavenia</h1>
+           <p className="text-slate-500 text-sm">Prispôsob si svoj denný prehľad.</p>
+        </div>
+        <button 
+          onClick={() => setShowProfileModal(true)}
+          className="p-3 bg-white border border-slate-200 rounded-full text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-colors shadow-sm"
+          title="Profil a Preferencie"
+        >
+          <SettingsIcon className="w-5 h-5" />
+        </button>
       </header>
 
-      {/* Profile & Location Card */}
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-8">
-        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">
-          Profil & Preferencie
-        </h2>
-
-        {/* Location */}
-        <div className="mb-6">
-          <label className="block text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-            <MapPinIcon className="w-4 h-4 text-indigo-500" />
-            Moja Lokalita
-          </label>
-          <input 
-            type="text" 
-            value={city}
-            onChange={handleCityChange}
-            placeholder="napr. Bratislava"
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-          />
-        </div>
-
-        {/* Persona */}
-        <div>
-          <label className="block text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-            <UserIcon className="w-4 h-4 text-indigo-500" />
-            Osobnosť AI (Mood)
-          </label>
-          <div className="relative">
-             <select 
-              value={currentPersona} 
-              onChange={handlePersonaChange}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium appearance-none outline-none focus:ring-2 focus:ring-indigo-500 relative z-10 pr-10"
-             >
-               {Object.entries(PERSONA_UI_DATA).map(([key, data]) => (
-                 <option key={key} value={key}>
-                   {data.label}
-                 </option>
-               ))}
-             </select>
-             <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none z-10">
-               <ChevronDownIcon className="w-4 h-4" />
-             </div>
-          </div>
-          <div className="mt-3 bg-indigo-50 p-3 rounded-xl border border-indigo-100 flex gap-3 items-start">
-             <span className="text-lg">💡</span>
-             <p className="text-xs text-indigo-800 leading-relaxed font-medium pt-1">
-               {PERSONA_UI_DATA[currentPersona]?.description}
-             </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Topics Section */}
+      {/* Topics Section (Immediately Visible) */}
       <div>
         <div className="flex justify-between items-end mb-6">
           <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
@@ -223,6 +181,79 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
             </div>
         </div>
       )}
+
+      {/* Profile Settings Modal */}
+      {showProfileModal && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowProfileModal(false)}></div>
+            <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+               
+               <div className="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
+                  <h3 className="font-bold text-slate-900">Profil a Preferencie</h3>
+                  <button onClick={() => setShowProfileModal(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200/50">
+                     <XIcon className="w-5 h-5" />
+                  </button>
+               </div>
+
+               <div className="p-6">
+                  {/* Location */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                      <MapPinIcon className="w-4 h-4 text-indigo-500" />
+                      Moja Lokalita
+                    </label>
+                    <input 
+                      type="text" 
+                      value={city}
+                      onChange={handleCityChange}
+                      placeholder="napr. Bratislava"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    />
+                  </div>
+
+                  {/* Persona */}
+                  <div>
+                    <label className="block text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                      <UserIcon className="w-4 h-4 text-indigo-500" />
+                      Osobnosť AI (Mood)
+                    </label>
+                    <div className="relative">
+                      <select 
+                        value={currentPersona} 
+                        onChange={handlePersonaChange}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium appearance-none outline-none focus:ring-2 focus:ring-indigo-500 relative z-10 pr-10"
+                      >
+                        {Object.entries(PERSONA_UI_DATA).map(([key, data]) => (
+                          <option key={key} value={key}>
+                            {data.label}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none z-10">
+                        <ChevronDownIcon className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="mt-3 bg-indigo-50 p-3 rounded-xl border border-indigo-100 flex gap-3 items-start">
+                      <span className="text-lg">💡</span>
+                      <p className="text-xs text-indigo-800 leading-relaxed font-medium pt-1">
+                        {PERSONA_UI_DATA[currentPersona]?.description}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-8">
+                     <button 
+                       onClick={() => setShowProfileModal(false)}
+                       className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors"
+                     >
+                       Hotovo
+                     </button>
+                  </div>
+               </div>
+            </div>
+         </div>
+      )}
+
     </div>
   );
 };

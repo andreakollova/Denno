@@ -56,7 +56,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
             </div>
           </div>
           
-          <div className="px-6 py-6">
+          <div className="px-6 py-6 pb-24">
             <h1 className="text-2xl font-bold text-slate-900 leading-tight mb-6">
               {selectedDigest.mainTitle}
             </h1>
@@ -102,7 +102,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
   // --- MAIN LIST VIEW (TABS) ---
   return (
     <div className="px-6 py-8 animate-in fade-in pb-24">
-      <div className="sticky top-0 bg-white/95 backdrop-blur-md py-4 -mt-4 z-10 flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-slate-900">Uložené</h1>
       </div>
 

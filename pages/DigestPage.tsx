@@ -5,19 +5,19 @@ import { DailyDigest, AppTab, DigestSection, PersonaType } from '../types';
 import { getDigestById, saveDigest, getSelectedTopicIds, getUserProfile, deleteDigest, isInsightSaved, saveInsight, removeInsight } from '../services/storageService';
 import { fetchArticlesForTopics } from '../services/rssService';
 import { generateDailyDigest, generateAdditionalSections, explainTerm } from '../services/geminiService';
-import { fetchCoordinates, fetchWeather, WeatherData } from '../services/weatherService';
 import DigestCard from '../components/DigestCard';
 import ChatModal from '../components/ChatModal';
-import { SparklesIcon, WeatherSunIcon, WeatherCloudIcon, WeatherRainIcon, RefreshIcon, PlusCircleIcon, BookIcon, XIcon, BotIcon } from '../components/Icons';
+import { SparklesIcon, RefreshIcon, PlusCircleIcon, BookIcon, XIcon } from '../components/Icons';
 import { PERSONA_UI_DATA } from '../constants';
 
 interface DigestPageProps {
   changeTab: (tab: AppTab) => void;
   autoStart?: boolean;
   onAutoStartConsumed?: () => void;
+  onProfileUpdate?: () => void;
 }
 
-const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoStartConsumed }) => {
+const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoStartConsumed, onProfileUpdate }) => {
   const [digest, setDigest] = useState<DailyDigest | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<string>('');
@@ -26,7 +26,6 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
   const [activeChatSection, setActiveChatSection] = useState<DigestSection | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [profile, setProfile] = useState(getUserProfile());
-  const [weather, setWeather] = useState<WeatherData | null>(null);
   
   // Loading Animation State
   const [isAiProcessing, setIsAiProcessing] = useState(false);
@@ -50,9 +49,6 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
       setDigest(existing);
     }
     setProfile(getUserProfile());
-
-    // Fetch Weather
-    loadWeather(getUserProfile().city || 'Bratislava');
   }, [lastSave]); // Reload when saves happen
 
   // Effect for rotating loading messages
@@ -100,17 +96,6 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
     };
   }, [isAiProcessing, articleCount, profile.selectedPersona]);
 
-  const loadWeather = async (city: string) => {
-    try {
-      const coords = await fetchCoordinates(city);
-      if (coords) {
-        const wData = await fetchWeather(coords.lat, coords.lon);
-        setWeather(wData);
-      }
-    } catch (e) {
-      console.warn("Weather error", e);
-    }
-  };
 
   const handleGenerate = async () => {
     const topics = getSelectedTopicIds();
@@ -141,7 +126,11 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
       
       saveDigest(newDigest);
       setDigest(newDigest);
-      setProfile(getUserProfile()); // Update streak display
+      
+      const newProfile = getUserProfile();
+      setProfile(newProfile); 
+      onProfileUpdate && onProfileUpdate(); // Update Global Header Streak
+
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Nastala chyba pri generovaní prehľadu.');
@@ -246,15 +235,10 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
     month: 'long' 
   });
 
-  const getWeatherIcon = (w: WeatherData) => {
-      if (w.weatherCode >= 51) return <WeatherRainIcon className="w-4 h-4 text-indigo-400 mb-0.5" />;
-      if (w.weatherCode > 2) return <WeatherCloudIcon className="w-4 h-4 text-slate-400 mb-0.5" />;
-      return <WeatherSunIcon className="w-4 h-4 text-amber-500" />;
-  };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-full px-6 text-center pt-32 animate-in fade-in duration-700">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-150px)] px-6 text-center animate-in fade-in duration-700">
         <div className="relative w-24 h-24 mb-8">
           <div className="absolute top-0 left-0 w-full h-full border-4 border-indigo-200 rounded-full animate-ping opacity-25"></div>
           <div className="absolute top-0 left-0 w-full h-full border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
@@ -272,40 +256,19 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
 
   if (!digest) {
     return (
-      <div className="relative min-h-full flex flex-col items-center justify-center px-6 overflow-hidden">
-        {/* Background blobs */}
-        <div className="absolute top-0 -left-20 w-72 h-72 bg-indigo-100/50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
-        <div className="absolute bottom-0 -right-20 w-72 h-72 bg-purple-100/50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
-
+      // Added min-h-[calc(100dvh-150px)] to center content vertically in the available area
+      <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-150px)] px-6">
         <div className="relative z-10 text-center w-full max-w-sm">
           <div className="flex items-center justify-center gap-2 mb-4">
              <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest opacity-80">
               {formattedDate}
             </span>
-             {profile.streak > 0 && (
-               <span className="text-xs font-bold text-amber-500 bg-amber-100 px-2 py-0.5 rounded-full flex items-center">
-                 🔥 {profile.streak} dní
-               </span>
-             )}
           </div>
           
-          <div className="mb-6 flex justify-center items-center">
-             <img src="https://cdn.shopify.com/s/files/1/0804/4226/1839/files/54325342.png?v=1764569599" alt="Logo" className="h-16 w-auto object-contain" />
-          </div>
-
           <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tight leading-tight">
             {getGreeting()}.
           </h1>
 
-          {/* Weather Widget */}
-          {weather && (
-            <div className="flex items-center justify-center gap-2 mb-8 text-slate-500 bg-white/60 backdrop-blur-sm py-1 px-3 rounded-full inline-flex border border-white">
-                {getWeatherIcon(weather)}
-                <span className="text-sm font-medium">{weather.temperature}°C</span>
-                <span className="text-xs border-l border-slate-300 pl-2 ml-1">{profile.city}</span>
-            </div>
-          )}
-          
           <p className="text-lg text-slate-500 mb-8 font-light">
             Tvoj osobný AI editor je pripravený.<br/>
             <span className="text-xs mt-2 block opacity-70">Mód: <span className="uppercase font-bold">{PERSONA_UI_DATA[profile.selectedPersona]?.label || profile.selectedPersona}</span></span>
@@ -340,36 +303,8 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
     <>
       <div className="animate-in fade-in duration-500">
         
-        {/* Sticky Header */}
-        <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm px-4 py-3 flex items-center justify-between relative min-h-[60px]">
-            
-            {/* Logo Centered Absolutely */}
-            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                <img src="https://cdn.shopify.com/s/files/1/0804/4226/1839/files/54325342.png?v=1764569599" alt="Logo" className="h-10 w-auto object-contain" />
-            </div>
-             
-             {/* Left side spacer */}
-             <div></div>
-
-             {/* Right: Status Icons */}
-             <div className="flex items-center justify-end gap-2 z-10">
-                {weather && (
-                    <div className="flex items-center gap-1.5 text-slate-500 bg-slate-100/50 border border-slate-200 px-2.5 py-1 rounded-full h-7">
-                        {getWeatherIcon(weather)}
-                        <span className="text-xs font-bold leading-none mt-0.5">{Math.round(weather.temperature)}°</span>
-                    </div>
-                )}
-                {profile.streak > 0 && (
-                   <span className="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-full h-7">
-                     <span className="leading-none text-sm">🔥</span>
-                     <span className="leading-none mt-0.5">{profile.streak}</span>
-                   </span>
-                 )}
-            </div>
-        </header>
-
         {/* Scrollable Content */}
-        <div className="p-6 space-y-8">
+        <div className="p-6 space-y-8 pb-32">
             
             {/* Main Title - Moved here from header */}
             <h1 className="text-2xl font-black text-slate-900 leading-tight">
