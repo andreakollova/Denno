@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Chat } from "@google/genai";
-import { Article, DailyDigest, DigestSection, PersonaType } from '../types';
+import { Article, DailyDigest, DigestSection, PersonaType, LearningPack } from '../types';
 import { getSystemInstruction } from '../constants';
 import { fetchTextWithFallback } from './rssService';
 
@@ -11,12 +11,12 @@ export const generateDailyDigest = async (articles: Article[], persona: PersonaT
   }
 
   // Limit articles to avoid token limits (top 80 most recent)
-  // Increased from 30 to 80 to allow for "Generating More" content
   const sortedArticles = articles.sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime()).slice(0, 80);
 
-  const articlesText = sortedArticles.map(a => `Title: ${a.title}\nSummary: ${a.summary}\nSource: ${a.source}\n`).join('\n---\n');
+  // Added Link: ${a.link} to the input so AI can reference it
+  const articlesText = sortedArticles.map(a => `Title: ${a.title}\nLink: ${a.link}\nSummary: ${a.summary}\nSource: ${a.source}\n`).join('\n---\n');
 
-  const prompt = `Here are the news articles from the last 72 hours:\n\n${articlesText}\n\nCreate a comprehensive digest with 5 to 8 distinct sections. Ensure all titles use Slovak sentence case (only first letter capitalized).`;
+  const prompt = `Here are the news articles from the last 72 hours:\n\n${articlesText}\n\nCreate a comprehensive digest with 5 to 8 distinct sections. Ensure all titles use Slovak sentence case (only first letter capitalized). IMPORTANT: For each section, you MUST provide the exact 'sourceLink' of the article you used.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
@@ -49,12 +49,13 @@ export const generateDailyDigest = async (articles: Article[], persona: PersonaT
                 whatIsNew: { type: Type.STRING },
                 whatChanged: { type: Type.STRING },
                 whatToWatch: { type: Type.STRING },
+                sourceLink: { type: Type.STRING, description: "The EXACT Link URL of the source article used for this section" },
                 tags: {
                   type: Type.ARRAY,
                   items: { type: Type.STRING }
                 }
               },
-              required: ["title", "whatIsNew", "whatChanged", "whatToWatch", "tags"]
+              required: ["title", "whatIsNew", "whatChanged", "whatToWatch", "tags", "sourceLink"]
             }
           }
         },
@@ -71,13 +72,18 @@ export const generateDailyDigest = async (articles: Article[], persona: PersonaT
   const jsonResponse = JSON.parse(text);
   const todayId = new Date().toISOString().split('T')[0];
 
+  // Map directly without image processing
+  const enrichedSections = jsonResponse.sections.map((s: any) => ({
+    ...s
+  }));
+
   return {
     id: todayId,
     date: new Date().toISOString(),
     mainTitle: jsonResponse.mainTitle,
     oneSentenceOverview: jsonResponse.oneSentenceOverview,
     busyRead: jsonResponse.busyRead,
-    sections: jsonResponse.sections,
+    sections: enrichedSections,
     sourceArticles: sortedArticles, // Save source for "Generate More"
     createdAt: Date.now(),
     personaUsed: persona
@@ -92,7 +98,7 @@ export const generateAdditionalSections = async (
   
   if (articles.length === 0) return [];
 
-  const articlesText = articles.map(a => `Title: ${a.title}\nSummary: ${a.summary}\n`).join('\n---\n');
+  const articlesText = articles.map(a => `Title: ${a.title}\nLink: ${a.link}\nSummary: ${a.summary}\n`).join('\n---\n');
   const existingTitles = existingSections.map(s => s.title).join(", ");
 
   const prompt = `
@@ -103,6 +109,7 @@ export const generateAdditionalSections = async (
     
     TASK: Generate 3 NEW, DISTINCT sections based on the articles that cover different stories or angles NOT yet covered in the list above.
     Ensure strict Slovak sentence case for titles.
+    Provide 'sourceLink' for each section.
   `;
 
   const response = await ai.models.generateContent({
@@ -120,12 +127,13 @@ export const generateAdditionalSections = async (
             whatIsNew: { type: Type.STRING },
             whatChanged: { type: Type.STRING },
             whatToWatch: { type: Type.STRING },
+            sourceLink: { type: Type.STRING },
             tags: {
               type: Type.ARRAY,
               items: { type: Type.STRING }
             }
           },
-          required: ["title", "whatIsNew", "whatChanged", "whatToWatch", "tags"]
+          required: ["title", "whatIsNew", "whatChanged", "whatToWatch", "tags", "sourceLink"]
         }
       }
     }
@@ -134,7 +142,10 @@ export const generateAdditionalSections = async (
   const text = response.text;
   if (!text) return [];
 
-  return JSON.parse(text) as DigestSection[];
+  const rawSections = JSON.parse(text) as DigestSection[];
+
+  // Return sections without image mapping
+  return rawSections;
 };
 
 export const createChatSession = (section: DigestSection): Chat => {
@@ -185,3 +196,44 @@ export const summarizeUrl = async (url: string, persona: PersonaType): Promise<s
     return "Prepáč, nepodarilo sa mi načítať alebo analyzovať tento odkaz.";
   }
 }
+
+// Feature 43: Encyclopedia - Explain a term
+export const explainTerm = async (term: string, persona: PersonaType): Promise<string> => {
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: `Explain the concept or topic "${term}" clearly in Slovak. Use the persona: ${persona}. Keep it under 150 words.`,
+    config: {
+      systemInstruction: "You are an AI Encyclopedia. Your goal is to provide clear, accurate, and concise definitions of complex terms found in news articles. Output in Slovak Markdown."
+    }
+  });
+  return response.text || "Nepodarilo sa nájsť vysvetlenie.";
+};
+
+// Feature 44: Fast Learning Packs
+export const generateLearningPack = async (topic: string, persona: PersonaType): Promise<LearningPack> => {
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: `Create a "10-minute Fast Learning Pack" about: ${topic}. Language: Slovak.`,
+    config: {
+      systemInstruction: `You are an educational AI. Create a structured crash course on the given topic. 
+      Persona: ${persona}.
+      Structure the JSON response exactly as requested.`,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          topic: { type: Type.STRING },
+          definition: { type: Type.STRING, description: "Simple definition of the topic" },
+          history: { type: Type.STRING, description: "Brief history or timeline in 2-3 sentences" },
+          keyConcepts: { type: Type.ARRAY, items: { type: Type.STRING }, description: "3-5 bullet points of main concepts" },
+          futureOutlook: { type: Type.STRING, description: "What to expect in the future" },
+          quizQuestion: { type: Type.STRING, description: "One simple quiz question to test understanding" }
+        },
+        required: ["topic", "definition", "history", "keyConcepts", "futureOutlook", "quizQuestion"]
+      }
+    }
+  });
+
+  if (!response.text) throw new Error("Generovanie zlyhalo");
+  return JSON.parse(response.text) as LearningPack;
+};

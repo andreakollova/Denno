@@ -1,9 +1,11 @@
+
 export interface Article {
   title: string;
   summary: string;
   link: string;
   published: string; // ISO date string
   source: string;
+  imageUrl?: string;
 }
 
 export interface DigestSection {
@@ -12,6 +14,8 @@ export interface DigestSection {
   whatChanged: string;
   whatToWatch: string;
   tags: string[];
+  sourceTitle?: string; // Kept for backward compatibility if needed
+  sourceLink?: string; // New: Unique identifier for exact matching
 }
 
 export interface BusyItem {
@@ -44,6 +48,15 @@ export interface UserProfile {
   totalDigests: number;
   selectedPersona: PersonaType;
   city?: string;
+}
+
+export interface LearningPack {
+  topic: string;
+  definition: string;
+  history: string;
+  keyConcepts: string[];
+  futureOutlook: string;
+  quizQuestion: string;
 }
 
 export enum PersonaType {

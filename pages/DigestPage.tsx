@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { DailyDigest, AppTab, DigestSection, PersonaType } from '../types';
 import { getDigestById, saveDigest, getSelectedTopicIds, getUserProfile, deleteDigest } from '../services/storageService';
 import { fetchArticlesForTopics } from '../services/rssService';
-import { generateDailyDigest, generateAdditionalSections } from '../services/geminiService';
+import { generateDailyDigest, generateAdditionalSections, explainTerm } from '../services/geminiService';
 import { fetchCoordinates, fetchWeather, WeatherData } from '../services/weatherService';
 import DigestCard from '../components/DigestCard';
 import ChatModal from '../components/ChatModal';
-import { SparklesIcon, WeatherSunIcon, WeatherCloudIcon, WeatherRainIcon, RefreshIcon, PlusCircleIcon } from '../components/Icons';
+import { SparklesIcon, WeatherSunIcon, WeatherCloudIcon, WeatherRainIcon, RefreshIcon, PlusCircleIcon, BookIcon, XIcon, BotIcon } from '../components/Icons';
 
 interface DigestPageProps {
   changeTab: (tab: AppTab) => void;
@@ -24,6 +26,11 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
   const [currentDate, setCurrentDate] = useState(new Date());
   const [profile, setProfile] = useState(getUserProfile());
   const [weather, setWeather] = useState<WeatherData | null>(null);
+  
+  // Encyclopedia State
+  const [encyclopediaTerm, setEncyclopediaTerm] = useState<string | null>(null);
+  const [encyclopediaContent, setEncyclopediaContent] = useState<string | null>(null);
+  const [encyclopediaLoading, setEncyclopediaLoading] = useState(false);
 
   useEffect(() => {
     // Check for today's digest
@@ -120,6 +127,26 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
     }
   };
 
+  // Feature 43: Encyclopedia Handler
+  const handleTagClick = async (tag: string) => {
+    setEncyclopediaTerm(tag);
+    setEncyclopediaContent(null);
+    setEncyclopediaLoading(true);
+    try {
+      const text = await explainTerm(tag, profile.selectedPersona);
+      setEncyclopediaContent(text);
+    } catch (e) {
+      setEncyclopediaContent("Nepodarilo sa načítať vysvetlenie.");
+    } finally {
+      setEncyclopediaLoading(false);
+    }
+  };
+
+  const closeEncyclopedia = () => {
+    setEncyclopediaTerm(null);
+    setEncyclopediaContent(null);
+  };
+
   // Handle auto-start from Settings "Generate" button
   useEffect(() => {
     if (autoStart) {
@@ -144,10 +171,9 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
   });
 
   const getWeatherIcon = (w: WeatherData) => {
-      // Very basic mapping based on WMO code from OpenMeteo
-      if (w.weatherCode >= 51) return <WeatherRainIcon className="w-5 h-5 text-indigo-400" />;
-      if (w.weatherCode > 2) return <WeatherCloudIcon className="w-5 h-5 text-slate-400" />;
-      return <WeatherSunIcon className="w-5 h-5 text-amber-500" />;
+      if (w.weatherCode >= 51) return <WeatherRainIcon className="w-4 h-4 text-indigo-400 mb-0.5" />;
+      if (w.weatherCode > 2) return <WeatherCloudIcon className="w-4 h-4 text-slate-400 mb-0.5" />;
+      return <WeatherSunIcon className="w-4 h-4 text-amber-500" />;
   };
 
   if (loading) {
@@ -185,7 +211,11 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
              )}
           </div>
           
-          <h1 className="text-5xl font-black text-slate-900 mb-2 tracking-tight leading-tight">
+          <div className="mb-6 flex justify-center items-center">
+             <img src="https://cdn.shopify.com/s/files/1/0804/4226/1839/files/54325342.png?v=1764569599" alt="Logo" className="h-16 w-auto object-contain" />
+          </div>
+
+          <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tight leading-tight">
             {getGreeting()}.
           </h1>
 
@@ -233,37 +263,41 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
       <div className="animate-in fade-in duration-500">
         
         {/* Sticky Header */}
-        <header className="sticky top-0 z-20 px-6 py-4 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm transition-all">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
-              <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">
-                Dnešný súhrn
-              </span>
+        <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm px-4 py-3 flex items-center justify-between relative min-h-[60px]">
+            
+            {/* Logo Centered Absolutely */}
+            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                <img src="https://cdn.shopify.com/s/files/1/0804/4226/1839/files/54325342.png?v=1764569599" alt="Logo" className="h-10 w-auto object-contain" />
             </div>
-             <div className="flex items-center gap-2">
+             
+             {/* Left side spacer */}
+             <div></div>
+
+             {/* Right: Status Icons */}
+             <div className="flex items-center justify-end gap-2 z-10">
                 {weather && (
-                    <div className="flex items-center gap-1.5 text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-full">
+                    <div className="flex items-center gap-1.5 text-slate-500 bg-slate-100/50 border border-slate-200 px-2.5 py-1 rounded-full h-7">
                         {getWeatherIcon(weather)}
-                        <span className="text-xs font-bold">{Math.round(weather.temperature)}°</span>
+                        <span className="text-xs font-bold leading-none">{Math.round(weather.temperature)}°</span>
                     </div>
                 )}
                 {profile.streak > 0 && (
-                   <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">
-                     🔥 {profile.streak}
+                   <span className="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-full h-7">
+                     <span className="leading-none">🔥</span>
+                     <span className="leading-none">{profile.streak}</span>
                    </span>
                  )}
             </div>
-          </div>
-          
-          <h1 className="text-xl font-bold text-slate-900 leading-tight line-clamp-1">
-            {digest.mainTitle}
-          </h1>
         </header>
 
         {/* Scrollable Content */}
         <div className="p-6 space-y-8">
             
+            {/* Main Title - Moved here from header */}
+            <h1 className="text-2xl font-black text-slate-900 leading-tight">
+                {digest.mainTitle}
+            </h1>
+
             {/* Feature 7: One Sentence */}
             <div className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white p-5 rounded-3xl shadow-xl shadow-indigo-900/20 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
@@ -306,10 +340,11 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
                 </h3>
                 {digest.sections.map((section, index) => (
                     <DigestCard 
-                    key={index} 
-                    section={section} 
-                    index={index} 
-                    onAskMore={setActiveChatSection}
+                      key={index} 
+                      section={section} 
+                      index={index} 
+                      onAskMore={setActiveChatSection}
+                      onTagClick={handleTagClick}
                     />
                 ))}
             </div>
@@ -349,6 +384,46 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
           section={activeChatSection} 
           onClose={() => setActiveChatSection(null)} 
         />
+      )}
+
+      {/* Encyclopedia Modal */}
+      {encyclopediaTerm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={closeEncyclopedia}></div>
+           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+              
+              <div className="bg-indigo-600 p-4 flex justify-between items-start">
+                 <div className="flex items-center gap-2 text-white">
+                    <BookIcon className="w-5 h-5 text-indigo-200" />
+                    <h3 className="font-bold text-lg">AI Encyklopédia</h3>
+                 </div>
+                 <button onClick={closeEncyclopedia} className="text-white/70 hover:text-white">
+                    <XIcon className="w-5 h-5" />
+                 </button>
+              </div>
+
+              <div className="p-6">
+                 <h2 className="text-2xl font-black text-slate-900 mb-4">{encyclopediaTerm}</h2>
+                 
+                 {encyclopediaLoading ? (
+                    <div className="flex flex-col items-center justify-center py-8">
+                       <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
+                       <p className="text-sm text-slate-500">Hľadám definíciu...</p>
+                    </div>
+                 ) : (
+                    <div className="prose prose-sm text-slate-700 leading-relaxed max-h-60 overflow-y-auto pr-2">
+                       <ReactMarkdown>{encyclopediaContent || ""}</ReactMarkdown>
+                    </div>
+                 )}
+                 
+                 <div className="mt-6 pt-4 border-t border-slate-100 flex justify-center">
+                    <button onClick={closeEncyclopedia} className="text-sm font-bold text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-lg transition-colors">
+                       Zavrieť
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </div>
       )}
     </>
   );

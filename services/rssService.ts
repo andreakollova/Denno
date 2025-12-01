@@ -9,6 +9,7 @@ interface ProxyConfig {
 }
 
 // Ordered list of proxies to try
+// Removed headers from fetch to avoid preflight CORS issues
 const PROXIES: ProxyConfig[] = [
   {
     name: 'CodeTabs',
@@ -48,12 +49,9 @@ export const fetchTextWithFallback = async (url: string): Promise<string | null>
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
+      // REMOVED custom headers to prevent CORS preflight (OPTIONS request) failures
       const response = await fetch(proxyUrl, { 
-        signal: controller.signal,
-        headers: { 
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'application/xml, text/xml, */*'
-        }
+        signal: controller.signal
       });
       clearTimeout(id);
       
@@ -65,11 +63,10 @@ export const fetchTextWithFallback = async (url: string): Promise<string | null>
         }
       }
     } catch (e) {
-      console.warn(`[RSS] Proxy ${proxy.name} failed for ${url}:`, e);
+      console.warn(`[RSS] Proxy ${proxy.name} failed for ${url}`);
       // Continue to next proxy
     }
   }
-  console.warn(`[RSS] All text proxies failed for ${url}`);
   return null;
 };
 
@@ -88,7 +85,8 @@ const fetchWithRss2Json = async (url: string, sourceName: string): Promise<Artic
         link: item.link,
         published: item.pubDate,
         source: sourceName,
-        rawDate: new Date(item.pubDate) // rss2json returns standard format
+        rawDate: new Date(item.pubDate), // rss2json returns standard format
+        imageUrl: item.thumbnail || item.enclosure?.link
       }));
     }
   } catch (e) {
@@ -147,6 +145,31 @@ const parseXML = (xmlText: string, sourceName: string): Article[] => {
             if (linkNode) link = linkNode.getAttribute("href") || "";
         }
 
+        // Extract Image
+        let imageUrl: string | undefined;
+        
+        // 1. Check <enclosure>
+        const enclosure = node.querySelector("enclosure");
+        if (enclosure && enclosure.getAttribute("type")?.startsWith("image")) {
+          imageUrl = enclosure.getAttribute("url") || undefined;
+        }
+
+        // 2. Check <media:content> or <media:thumbnail>
+        if (!imageUrl) {
+          const mediaContent = node.getElementsByTagNameNS("*", "content")[0] || node.getElementsByTagNameNS("*", "thumbnail")[0];
+          if (mediaContent) {
+            imageUrl = mediaContent.getAttribute("url") || undefined;
+          }
+        }
+
+        // 3. Regex check in summary/content (Improved Regex)
+        if (!imageUrl) {
+           const imgMatch = summary.match(/<img[^>]+src=["']([^"']+)["']/i);
+           if (imgMatch) {
+             imageUrl = imgMatch[1];
+           }
+        }
+
         const pubDate = getDate(node);
 
         if (!title) return null;
@@ -165,7 +188,8 @@ const parseXML = (xmlText: string, sourceName: string): Article[] => {
             link: link,
             published: pubDate ? pubDate.toISOString() : new Date().toISOString(), 
             source: sourceName,
-            rawDate: pubDate
+            rawDate: pubDate,
+            imageUrl
         };
     };
 
