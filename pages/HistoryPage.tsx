@@ -1,23 +1,41 @@
+
 import React, { useEffect, useState } from 'react';
-import { DailyDigest, AppTab, DigestSection } from '../types';
-import { getDigests } from '../services/storageService';
+import { DailyDigest, DigestSection, SavedInsight } from '../types';
+import { getDigests, getSavedInsights, removeInsight } from '../services/storageService';
 import DigestCard from '../components/DigestCard';
 import ChatModal from '../components/ChatModal';
+import { CollectionIcon, BookmarkSolidIcon, NewspaperIcon } from '../components/Icons';
 
 interface HistoryPageProps {
   onBack: () => void;
 }
 
+type ViewMode = 'digests' | 'saved';
+
 const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
+  const [viewMode, setViewMode] = useState<ViewMode>('digests');
+  
+  // Digests State
   const [digests, setDigests] = useState<DailyDigest[]>([]);
   const [selectedDigest, setSelectedDigest] = useState<DailyDigest | null>(null);
+  
+  // Saved Insights State
+  const [savedInsights, setSavedInsights] = useState<SavedInsight[]>([]);
+
+  // Common State
   const [activeChatSection, setActiveChatSection] = useState<DigestSection | null>(null);
 
   useEffect(() => {
-    const data = getDigests();
-    setDigests(data);
-  }, []);
+    setDigests(getDigests());
+    setSavedInsights(getSavedInsights());
+  }, [viewMode]); // Reload when switching tabs
 
+  const handleRemoveSaved = (id: string) => {
+    removeInsight(id);
+    setSavedInsights(prev => prev.filter(i => i.id !== id));
+  };
+
+  // --- DETAIL VIEW FOR DIGEST ---
   if (selectedDigest) {
     return (
       <>
@@ -80,42 +98,109 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
     );
   }
 
+  // --- MAIN LIST VIEW (TABS) ---
   return (
-    <div className="px-6 py-8 animate-in fade-in">
-      <h1 className="text-3xl font-bold text-slate-900 mb-8 sticky top-0 bg-white/95 backdrop-blur-md py-4 -mt-4 z-10">História</h1>
+    <div className="px-6 py-8 animate-in fade-in pb-24">
+      <div className="sticky top-0 bg-white/95 backdrop-blur-md py-4 -mt-4 z-10 flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-slate-900">Uložené</h1>
+      </div>
 
-      {digests.length === 0 ? (
-        <div className="text-center py-16 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">
-          <p className="text-slate-400 font-medium">Zatiaľ žiadna história.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {digests.map((digest) => (
-            <button
-              key={digest.id}
-              onClick={() => setSelectedDigest(digest)}
-              className="w-full text-left bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-indigo-100 transition-all group relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 group-hover:bg-indigo-100"></div>
-              
-              <div className="relative z-10">
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                     {new Date(digest.date).toLocaleDateString('sk-SK')}
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 line-clamp-2 leading-tight mb-2 group-hover:text-indigo-900 transition-colors">
-                  {digest.mainTitle}
-                </h3>
-                <p className="text-slate-400 text-xs line-clamp-1 flex items-center">
-                  <span className="w-1.5 h-1.5 bg-slate-300 rounded-full mr-2"></span>
-                  {digest.sections.length} tém
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
+      {/* Tabs */}
+      <div className="flex bg-slate-100 p-1 rounded-2xl mb-8">
+        <button 
+           onClick={() => setViewMode('digests')}
+           className={`flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${viewMode === 'digests' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+           <NewspaperIcon className="w-4 h-4" />
+           Prehľady
+        </button>
+        <button 
+           onClick={() => setViewMode('saved')}
+           className={`flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${viewMode === 'saved' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+           <BookmarkSolidIcon className="w-4 h-4" />
+           Knižnica
+        </button>
+      </div>
+
+      {/* View: Digests List */}
+      {viewMode === 'digests' && (
+        <>
+          {digests.length === 0 ? (
+            <div className="text-center py-16 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">
+              <p className="text-slate-400 font-medium">Zatiaľ žiadne denné prehľady.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {digests.map((digest) => (
+                <button
+                  key={digest.id}
+                  onClick={() => setSelectedDigest(digest)}
+                  className="w-full text-left bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-indigo-100 transition-all group relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 group-hover:bg-indigo-100"></div>
+                  
+                  <div className="relative z-10">
+                    <div className="flex justify-between items-start mb-3">
+                      <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        {new Date(digest.date).toLocaleDateString('sk-SK')}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 line-clamp-2 leading-tight mb-2 group-hover:text-indigo-900 transition-colors">
+                      {digest.mainTitle}
+                    </h3>
+                    <p className="text-slate-400 text-xs line-clamp-1 flex items-center">
+                      <span className="w-1.5 h-1.5 bg-slate-300 rounded-full mr-2"></span>
+                      {digest.sections.length} tém
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
+
+      {/* View: Saved Insights Library */}
+      {viewMode === 'saved' && (
+         <>
+           {savedInsights.length === 0 ? (
+             <div className="text-center py-16 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">
+               <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BookmarkSolidIcon className="w-6 h-6 text-slate-400" />
+               </div>
+               <p className="text-slate-500 font-medium">Knižnica je prázdna.</p>
+               <p className="text-xs text-slate-400 mt-2">Ukladaj si zaujímavé karty z denného prehľadu.</p>
+             </div>
+           ) : (
+             <div className="space-y-6">
+                {savedInsights.map((item, index) => (
+                  <div key={item.id} className="relative">
+                     {/* Custom Save Card Wrapper */}
+                     <DigestCard 
+                        section={item.section} 
+                        index={index} 
+                        onAskMore={setActiveChatSection}
+                        onToggleSave={() => handleRemoveSaved(item.id)}
+                        isSaved={true}
+                     />
+                     <div className="absolute -top-3 left-4 bg-slate-900 text-white text-[10px] px-2 py-1 rounded shadow-sm z-10 font-bold uppercase tracking-wide">
+                        {new Date(item.sourceDigestDate).toLocaleDateString('sk-SK')}
+                     </div>
+                  </div>
+                ))}
+             </div>
+           )}
+         </>
+      )}
+
+      {activeChatSection && (
+          <ChatModal 
+            section={activeChatSection} 
+            onClose={() => setActiveChatSection(null)} 
+          />
+      )}
+
     </div>
   );
 };

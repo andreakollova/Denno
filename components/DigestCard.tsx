@@ -1,27 +1,26 @@
+
 import React from 'react';
 import { DigestSection } from '../types';
-import { ChatIcon } from './Icons';
+import { ChatIcon, BookmarkIcon, BookmarkSolidIcon } from './Icons';
 
 interface DigestCardProps {
   section: DigestSection;
   index: number;
   onAskMore?: (section: DigestSection) => void;
   onTagClick?: (tag: string) => void;
+  onToggleSave?: (section: DigestSection) => void;
+  isSaved?: boolean;
 }
 
-const DigestCard: React.FC<DigestCardProps> = ({ section, index, onAskMore, onTagClick }) => {
+const DigestCard: React.FC<DigestCardProps> = ({ section, index, onAskMore, onTagClick, onToggleSave, isSaved }) => {
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mb-8 transition-all duration-300 hover:shadow-xl group">
       
       {/* Header with Badge */}
-      <div className="relative h-14 border-b border-slate-50 bg-slate-50/30">
-          {/* Index Badge */}
-          <div className="absolute top-3 right-4 bg-slate-100 text-slate-500 text-xs font-bold w-8 h-8 flex items-center justify-center rounded-full shadow-sm">
-            #{index + 1}
-          </div>
+      <div className="relative h-14 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between px-6">
           
-          {/* Tags (Now Interactive) */}
-          <div className="absolute top-4 left-6 flex flex-wrap gap-2 pr-12">
+          {/* Tags (Left) */}
+          <div className="flex flex-wrap gap-2 pr-4">
             {section.tags.map((tag, i) => (
               <button 
                 key={i} 
@@ -34,6 +33,24 @@ const DigestCard: React.FC<DigestCardProps> = ({ section, index, onAskMore, onTa
                 {tag}
               </button>
             ))}
+          </div>
+
+          {/* Controls (Right) */}
+          <div className="flex items-center gap-3">
+             {/* Bookmark Button */}
+             {onToggleSave && (
+               <button 
+                onClick={() => onToggleSave(section)}
+                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${isSaved ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:bg-slate-100'}`}
+               >
+                 {isSaved ? <BookmarkSolidIcon className="w-5 h-5" /> : <BookmarkIcon className="w-5 h-5" />}
+               </button>
+             )}
+             
+             {/* Index Badge */}
+             <div className="bg-slate-100 text-slate-500 text-xs font-bold w-8 h-8 flex items-center justify-center rounded-full shadow-sm">
+                #{index + 1}
+             </div>
           </div>
       </div>
 
@@ -67,15 +84,35 @@ const DigestCard: React.FC<DigestCardProps> = ({ section, index, onAskMore, onTa
           </p>
         </div>
 
-        {/* What To Watch */}
-        <div className="relative pl-4 border-l-2 border-indigo-500">
-          <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">
-            Na čo sa zamerať
-          </h4>
-          <p className="text-sm text-slate-700 italic">
-            "{section.whatToWatch}"
-          </p>
-        </div>
+        {/* Key Points Summary (Replaces What To Watch) */}
+        {section.keyPoints && section.keyPoints.length > 0 ? (
+          <div className="pt-2">
+            <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+               <span className="w-1 h-1 bg-indigo-600 rounded-full"></span>
+               Súhrn udalosti (5 bodov)
+            </h4>
+            <ul className="space-y-2">
+               {section.keyPoints.map((point, i) => (
+                  <li key={i} className="text-sm text-slate-700 leading-relaxed flex items-start gap-2">
+                     <span className="text-indigo-400 mt-1.5 text-[10px]">•</span>
+                     <span>{point}</span>
+                  </li>
+               ))}
+            </ul>
+          </div>
+        ) : (
+          /* Fallback for old digests without keyPoints */
+          section.whatToWatch && (
+            <div className="relative pl-4 border-l-2 border-indigo-500">
+                <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">
+                Na čo sa zamerať
+                </h4>
+                <p className="text-sm text-slate-700 italic">
+                "{section.whatToWatch}"
+                </p>
+            </div>
+          )
+        )}
 
         {onAskMore && (
           <button 

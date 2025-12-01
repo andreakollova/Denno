@@ -2,13 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { DailyDigest, AppTab, DigestSection, PersonaType } from '../types';
-import { getDigestById, saveDigest, getSelectedTopicIds, getUserProfile, deleteDigest } from '../services/storageService';
+import { getDigestById, saveDigest, getSelectedTopicIds, getUserProfile, deleteDigest, isInsightSaved, saveInsight, removeInsight } from '../services/storageService';
 import { fetchArticlesForTopics } from '../services/rssService';
 import { generateDailyDigest, generateAdditionalSections, explainTerm } from '../services/geminiService';
 import { fetchCoordinates, fetchWeather, WeatherData } from '../services/weatherService';
 import DigestCard from '../components/DigestCard';
 import ChatModal from '../components/ChatModal';
 import { SparklesIcon, WeatherSunIcon, WeatherCloudIcon, WeatherRainIcon, RefreshIcon, PlusCircleIcon, BookIcon, XIcon, BotIcon } from '../components/Icons';
+import { PERSONA_UI_DATA } from '../constants';
 
 interface DigestPageProps {
   changeTab: (tab: AppTab) => void;
@@ -27,10 +28,18 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
   const [profile, setProfile] = useState(getUserProfile());
   const [weather, setWeather] = useState<WeatherData | null>(null);
   
+  // Loading Animation State
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [articleCount, setArticleCount] = useState(0);
+  const [fadeProp, setFadeProp] = useState('opacity-100 translate-y-0');
+  
   // Encyclopedia State
   const [encyclopediaTerm, setEncyclopediaTerm] = useState<string | null>(null);
   const [encyclopediaContent, setEncyclopediaContent] = useState<string | null>(null);
   const [encyclopediaLoading, setEncyclopediaLoading] = useState(false);
+
+  // Trigger re-render when saving
+  const [lastSave, setLastSave] = useState(0);
 
   useEffect(() => {
     // Check for today's digest
@@ -44,7 +53,52 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
 
     // Fetch Weather
     loadWeather(getUserProfile().city || 'Bratislava');
-  }, []);
+  }, [lastSave]); // Reload when saves happen
+
+  // Effect for rotating loading messages
+  useEffect(() => {
+    if (!isAiProcessing) return;
+
+    const personaLabel = PERSONA_UI_DATA[profile.selectedPersona]?.label || profile.selectedPersona;
+    
+    const messages = [
+      `Analyzujem ${articleCount} stiahnutých článkov...`,
+      `Aplikujem mód: ${personaLabel}...`,
+      `Hľadám kľúčové súvislosti a trendy...`,
+      `Môže to chvíľu trvať, spracovávam dáta...`,
+      `Píšem zhrnutia a formátujem text...`,
+      `Ešte chvíľočku, už to bude...`
+    ];
+
+    let i = 0;
+    
+    // Initial transition: Fade out the previous "Searching..." message first
+    setFadeProp('opacity-0 translate-y-2');
+
+    // Wait for fade out, then show first AI message
+    const startTimeout = setTimeout(() => {
+        setLoadingStep(messages[0]);
+        setFadeProp('opacity-100 translate-y-0');
+    }, 600);
+
+    const interval = setInterval(() => {
+      // Start fade out
+      setFadeProp('opacity-0 translate-y-2');
+
+      setTimeout(() => {
+        i = (i + 1) % messages.length;
+        setLoadingStep(messages[i]);
+        // Start fade in
+        setFadeProp('opacity-100 translate-y-0');
+      }, 600); // Wait for fade out to finish
+
+    }, 5000); // Change message every 5 seconds
+
+    return () => {
+        clearInterval(interval);
+        clearTimeout(startTimeout);
+    };
+  }, [isAiProcessing, articleCount, profile.selectedPersona]);
 
   const loadWeather = async (city: string) => {
     try {
@@ -66,17 +120,23 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
     }
 
     setLoading(true);
+    setIsAiProcessing(false); // Reset AI processing state initially
     setError(null);
 
     try {
-      setLoadingStep('Načítavam RSS zdroje...');
+      setLoadingStep('Hľadám najnovšie správy...');
+      setFadeProp('opacity-100 translate-y-0'); // Ensure visible start
+      
       const articles = await fetchArticlesForTopics(topics);
       
       if (articles.length === 0) {
         throw new Error('Nepodarilo sa stiahnuť žiadne články. Skontrolujte internetové pripojenie alebo skúste iné témy.');
       }
 
-      setLoadingStep(`Analyzujem ${articles.length} článkov (Mód: ${profile.selectedPersona})...`);
+      // Start the rotating messages
+      setArticleCount(articles.length);
+      setIsAiProcessing(true);
+
       const newDigest = await generateDailyDigest(articles, profile.selectedPersona);
       
       saveDigest(newDigest);
@@ -86,6 +146,7 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
       console.error(err);
       setError(err.message || 'Nastala chyba pri generovaní prehľadu.');
     } finally {
+      setIsAiProcessing(false);
       setLoading(false);
       setLoadingStep('');
     }
@@ -125,6 +186,21 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
         deleteDigest(digest.id);
         setDigest(null);
     }
+  };
+
+  const handleToggleSave = (section: DigestSection) => {
+    if (!digest) return;
+
+    // Use a unique ID combination logic matching the storage service
+    const id = `${digest.id}-${section.title.substring(0, 10).replace(/\s+/g, '')}`;
+    const saved = isInsightSaved(section.title, digest.id);
+
+    if (saved) {
+      removeInsight(id);
+    } else {
+      saveInsight(section, digest.id, digest.date);
+    }
+    setLastSave(Date.now()); // Trigger re-render
   };
 
   // Feature 43: Encyclopedia Handler
@@ -178,7 +254,7 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-full px-6 text-center pt-32">
+      <div className="flex flex-col items-center justify-center min-h-full px-6 text-center pt-32 animate-in fade-in duration-700">
         <div className="relative w-24 h-24 mb-8">
           <div className="absolute top-0 left-0 w-full h-full border-4 border-indigo-200 rounded-full animate-ping opacity-25"></div>
           <div className="absolute top-0 left-0 w-full h-full border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
@@ -187,7 +263,9 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
           </div>
         </div>
         <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight">Pripravujem váš prehľad</h3>
-        <p className="text-slate-500 animate-pulse font-medium">{loadingStep}</p>
+        <p className={`text-sm text-slate-500 font-medium transition-all duration-700 ease-in-out h-6 transform ${fadeProp}`}>
+            {loadingStep}
+        </p>
       </div>
     );
   }
@@ -230,7 +308,7 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
           
           <p className="text-lg text-slate-500 mb-8 font-light">
             Tvoj osobný AI editor je pripravený.<br/>
-            <span className="text-xs mt-2 block opacity-70">Mód: <span className="uppercase font-bold">{profile.selectedPersona}</span></span>
+            <span className="text-xs mt-2 block opacity-70">Mód: <span className="uppercase font-bold">{PERSONA_UI_DATA[profile.selectedPersona]?.label || profile.selectedPersona}</span></span>
           </p>
           
           {error && (
@@ -278,13 +356,13 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
                 {weather && (
                     <div className="flex items-center gap-1.5 text-slate-500 bg-slate-100/50 border border-slate-200 px-2.5 py-1 rounded-full h-7">
                         {getWeatherIcon(weather)}
-                        <span className="text-xs font-bold leading-none">{Math.round(weather.temperature)}°</span>
+                        <span className="text-xs font-bold leading-none mt-0.5">{Math.round(weather.temperature)}°</span>
                     </div>
                 )}
                 {profile.streak > 0 && (
                    <span className="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-full h-7">
-                     <span className="leading-none">🔥</span>
-                     <span className="leading-none">{profile.streak}</span>
+                     <span className="leading-none text-sm">🔥</span>
+                     <span className="leading-none mt-0.5">{profile.streak}</span>
                    </span>
                  )}
             </div>
@@ -345,6 +423,8 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
                       index={index} 
                       onAskMore={setActiveChatSection}
                       onTagClick={handleTagClick}
+                      onToggleSave={handleToggleSave}
+                      isSaved={isInsightSaved(section.title, digest.id)}
                     />
                 ))}
             </div>

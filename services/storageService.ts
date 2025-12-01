@@ -1,8 +1,10 @@
-import { DailyDigest, UserProfile, PersonaType } from '../types';
+
+import { DailyDigest, UserProfile, PersonaType, SavedInsight, DigestSection } from '../types';
 
 const TOPICS_KEY = 'ai_digest_topics';
 const DIGESTS_KEY = 'ai_digest_history';
 const PROFILE_KEY = 'ai_digest_profile';
+const COLLECTION_KEY = 'ai_digest_collection';
 
 export const getSelectedTopicIds = (): string[] => {
   const stored = localStorage.getItem(TOPICS_KEY);
@@ -42,6 +44,46 @@ export const getDigestById = (id: string): DailyDigest | undefined => {
   const digests = getDigests();
   return digests.find(d => d.id === id);
 };
+
+// --- SAVED COLLECTION (INSIGHTS) ---
+
+export const getSavedInsights = (): SavedInsight[] => {
+  const stored = localStorage.getItem(COLLECTION_KEY);
+  return stored ? JSON.parse(stored) : [];
+};
+
+export const saveInsight = (section: DigestSection, sourceDigestId: string, sourceDigestDate: string) => {
+  const current = getSavedInsights();
+  // Unique ID based on title + date
+  const id = `${sourceDigestId}-${section.title.substring(0, 10).replace(/\s+/g, '')}`;
+  
+  // Avoid duplicates
+  if (current.some(i => i.id === id)) return;
+
+  const newInsight: SavedInsight = {
+    id,
+    section,
+    savedAt: Date.now(),
+    sourceDigestId,
+    sourceDigestDate
+  };
+
+  localStorage.setItem(COLLECTION_KEY, JSON.stringify([newInsight, ...current]));
+};
+
+export const removeInsight = (id: string) => {
+  const current = getSavedInsights();
+  const updated = current.filter(i => i.id !== id);
+  localStorage.setItem(COLLECTION_KEY, JSON.stringify(updated));
+};
+
+export const isInsightSaved = (sectionTitle: string, sourceDigestId: string): boolean => {
+  const current = getSavedInsights();
+  const id = `${sourceDigestId}-${sectionTitle.substring(0, 10).replace(/\s+/g, '')}`;
+  return current.some(i => i.id === id);
+};
+
+// --- USER PROFILE ---
 
 export const getUserProfile = (): UserProfile => {
   const stored = localStorage.getItem(PROFILE_KEY);

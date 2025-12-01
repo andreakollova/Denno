@@ -12,10 +12,11 @@ export interface DigestSection {
   title: string;
   whatIsNew: string;
   whatChanged: string;
-  whatToWatch: string;
+  keyPoints: string[]; // Changed: 5 bullet points summary
   tags: string[];
-  sourceTitle?: string; // Kept for backward compatibility if needed
-  sourceLink?: string; // New: Unique identifier for exact matching
+  sourceTitle?: string; 
+  sourceLink?: string; 
+  whatToWatch?: string; // Legacy field for backward compatibility
 }
 
 export interface BusyItem {
@@ -27,12 +28,20 @@ export interface DailyDigest {
   id: string; // usually YYYY-MM-DD
   date: string; // ISO date string
   mainTitle: string;
-  oneSentenceOverview: string; // Feature 7
-  busyRead: BusyItem[]; // Feature 8
-  sections: DigestSection[]; // Feature 9
-  sourceArticles: Article[]; // New: Store articles to allow generating more
+  oneSentenceOverview: string; 
+  busyRead: BusyItem[]; 
+  sections: DigestSection[]; 
+  sourceArticles: Article[]; 
   createdAt: number;
   personaUsed: string;
+}
+
+export interface SavedInsight {
+  id: string;
+  section: DigestSection;
+  savedAt: number;
+  sourceDigestId: string;
+  sourceDigestDate: string;
 }
 
 export interface Topic {
@@ -68,7 +77,7 @@ export enum PersonaType {
 
 export enum AppTab {
   DIGEST = 'digest',
-  HISTORY = 'history',
+  HISTORY = 'history', // Kept for logic compatibility, mapped to "Uložené"
   TOOLS = 'tools',
   SETTINGS = 'settings'
 }

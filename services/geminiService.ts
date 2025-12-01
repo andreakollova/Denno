@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { Article, DailyDigest, DigestSection, PersonaType, LearningPack } from '../types';
 import { getSystemInstruction } from '../constants';
@@ -48,14 +49,18 @@ export const generateDailyDigest = async (articles: Article[], persona: PersonaT
                 title: { type: Type.STRING },
                 whatIsNew: { type: Type.STRING },
                 whatChanged: { type: Type.STRING },
-                whatToWatch: { type: Type.STRING },
+                keyPoints: { 
+                    type: Type.ARRAY, 
+                    items: { type: Type.STRING },
+                    description: "5 bullet points summarizing the event"
+                },
                 sourceLink: { type: Type.STRING, description: "The EXACT Link URL of the source article used for this section" },
                 tags: {
                   type: Type.ARRAY,
-                  items: { type: Type.STRING }
+                  items: { type: Type.STRING, description: "Single word tag (e.g. 'Ekonomika')" }
                 }
               },
-              required: ["title", "whatIsNew", "whatChanged", "whatToWatch", "tags", "sourceLink"]
+              required: ["title", "whatIsNew", "whatChanged", "keyPoints", "tags", "sourceLink"]
             }
           }
         },
@@ -126,14 +131,17 @@ export const generateAdditionalSections = async (
             title: { type: Type.STRING },
             whatIsNew: { type: Type.STRING },
             whatChanged: { type: Type.STRING },
-            whatToWatch: { type: Type.STRING },
+            keyPoints: { 
+                type: Type.ARRAY, 
+                items: { type: Type.STRING }
+            },
             sourceLink: { type: Type.STRING },
             tags: {
               type: Type.ARRAY,
-              items: { type: Type.STRING }
+              items: { type: Type.STRING, description: "Single word tag only" }
             }
           },
-          required: ["title", "whatIsNew", "whatChanged", "whatToWatch", "tags", "sourceLink"]
+          required: ["title", "whatIsNew", "whatChanged", "keyPoints", "tags", "sourceLink"]
         }
       }
     }
@@ -153,7 +161,7 @@ export const createChatSession = (section: DigestSection): Chat => {
     Téma článku: ${section.title}
     Čo je nové: ${section.whatIsNew}
     Čo sa zmenilo: ${section.whatChanged}
-    Na čo sa zamerať: ${section.whatToWatch}
+    Kľúčové body: ${section.keyPoints ? section.keyPoints.join("; ") : section.whatToWatch}
   `;
 
   return ai.chats.create({

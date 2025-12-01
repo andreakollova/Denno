@@ -1,3 +1,4 @@
+
 import { Topic, PersonaType } from './types';
 
 // Predefined list of topics with reliable RSS feeds
@@ -400,8 +401,8 @@ Structure your response to match this JSON schema:
       "title": "string (Section header)",
       "whatIsNew": "string (What actually happened)",
       "whatChanged": "string (How is this different from before or what changed)",
-      "whatToWatch": "string (Future implications or what to expect next)",
-      "tags": ["string", "string"] (Max 2 tags)
+      "keyPoints": ["string", "string", "string", "string", "string"] (Exactly 5 bullet points summarizing the whole event),
+      "tags": ["string", "string"] (Max 2 tags. IMPORTANT: Each tag MUST be a single word. E.g. "Biznis", "AI". No multi-word tags.)
     }
   ]
 }

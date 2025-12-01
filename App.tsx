@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { AppTab } from './types';
 import DigestPage from './pages/DigestPage';
 import HistoryPage from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
 import ToolsPage from './pages/ToolsPage';
-import { NewspaperIcon, HistoryIcon, SettingsIcon, SearchIcon } from './components/Icons';
+import { NewspaperIcon, CollectionIcon, SettingsIcon, SearchIcon } from './components/Icons';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DIGEST);
@@ -58,8 +59,8 @@ const App: React.FC = () => {
             onClick={() => setActiveTab(AppTab.HISTORY)}
             className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.HISTORY ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
           >
-            <HistoryIcon className="w-6 h-6" />
-            <span className="text-[10px] font-medium uppercase tracking-wide">História</span>
+            <CollectionIcon className="w-6 h-6" />
+            <span className="text-[10px] font-medium uppercase tracking-wide">Uložené</span>
           </button>
           
           <button 
