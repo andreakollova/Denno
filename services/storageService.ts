@@ -1,11 +1,12 @@
 
-import { DailyDigest, UserProfile, PersonaType, SavedInsight, DigestSection, UserNote } from '../types';
+import { DailyDigest, UserProfile, PersonaType, SavedInsight, DigestSection, UserNote, NotificationFrequency, SubscriptionStatus, SubscriptionPlan } from '../types';
 
 const TOPICS_KEY = 'ai_digest_topics';
 const DIGESTS_KEY = 'ai_digest_history';
 const PROFILE_KEY = 'ai_digest_profile';
 const COLLECTION_KEY = 'ai_digest_collection';
 const NOTES_KEY = 'ai_digest_notes';
+const SECRET_CODE = 'AK2026'; // The code to unlock lifetime access
 
 export const getSelectedTopicIds = (): string[] => {
   const stored = localStorage.getItem(TOPICS_KEY);
@@ -107,19 +108,40 @@ export const deleteNote = (id: string) => {
   localStorage.setItem(NOTES_KEY, JSON.stringify(updated));
 };
 
-// --- USER PROFILE ---
+// --- USER PROFILE & SUBSCRIPTION ---
 
 export const getUserProfile = (): UserProfile => {
   const stored = localStorage.getItem(PROFILE_KEY);
   if (stored) {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    // Backward compatibility & Safety checks
+    if (!parsed.theme || (parsed.theme !== 'light' && parsed.theme !== 'dark')) {
+        parsed.theme = 'light'; 
+    }
+    if (!parsed.notificationFrequency) parsed.notificationFrequency = NotificationFrequency.DAILY;
+    
+    // Initialize Subscription if missing
+    if (!parsed.subscriptionStatus) {
+        parsed.subscriptionStatus = SubscriptionStatus.TRIAL;
+        parsed.subscriptionPlan = SubscriptionPlan.NONE;
+        parsed.trialStartDate = Date.now();
+    }
+    
+    return parsed;
   }
   return {
     streak: 0,
     lastVisit: '',
     totalDigests: 0,
     selectedPersona: PersonaType.DEFAULT,
-    city: 'Bratislava'
+    city: 'Bratislava',
+    theme: 'light',
+    notificationFrequency: NotificationFrequency.DAILY,
+    lastNotification: 0,
+    // New Subscription Defaults
+    subscriptionStatus: SubscriptionStatus.TRIAL,
+    subscriptionPlan: SubscriptionPlan.NONE,
+    trialStartDate: Date.now()
   };
 };
 
@@ -127,11 +149,64 @@ export const saveUserProfile = (profile: UserProfile) => {
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
 };
 
+// Check if user has access
+export const checkSubscriptionAccess = (): boolean => {
+    const profile = getUserProfile();
+    
+    if (profile.subscriptionStatus === SubscriptionStatus.LIFETIME) return true;
+    if (profile.subscriptionStatus === SubscriptionStatus.ACTIVE) {
+        // Check expiry if we were implementing real dates
+        // For now, active is active.
+        return true;
+    }
+
+    if (profile.subscriptionStatus === SubscriptionStatus.TRIAL) {
+        const now = Date.now();
+        const trialLength = 7 * 24 * 60 * 60 * 1000; // 7 days
+        const diff = now - profile.trialStartDate;
+        
+        if (diff > trialLength) {
+            // Trial Expired
+            const updated = { ...profile, subscriptionStatus: SubscriptionStatus.EXPIRED };
+            saveUserProfile(updated);
+            return false;
+        }
+        return true;
+    }
+
+    return false; // Expired
+};
+
+// Activate plan (Mock payment success)
+export const activateSubscription = (plan: SubscriptionPlan) => {
+    const profile = getUserProfile();
+    saveUserProfile({
+        ...profile,
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        subscriptionPlan: plan,
+        subscriptionExpiryDate: Date.now() + (plan === SubscriptionPlan.YEARLY ? 31536000000 : 2592000000)
+    });
+};
+
+// Unlock via Secret Code
+export const redeemSecretCode = (code: string): boolean => {
+    if (code.trim() === SECRET_CODE) {
+        const profile = getUserProfile();
+        saveUserProfile({
+            ...profile,
+            subscriptionStatus: SubscriptionStatus.LIFETIME,
+            subscriptionPlan: SubscriptionPlan.NONE
+        });
+        return true;
+    }
+    return false;
+};
+
+
 export const updateStreak = () => {
   const profile = getUserProfile();
   const today = new Date().toISOString().split('T')[0];
   
-  // If already generated today, don't update stats again
   if (profile.lastVisit === today) return;
 
   const yesterday = new Date();
@@ -143,7 +218,6 @@ export const updateStreak = () => {
   if (profile.lastVisit === yesterdayStr) {
     newStreak += 1;
   } else {
-    // Reset streak if missed a day (unless it's the very first time)
     newStreak = profile.lastVisit ? 1 : 1;
   }
 
@@ -158,4 +232,16 @@ export const updateStreak = () => {
 export const setPersona = (persona: PersonaType) => {
   const profile = getUserProfile();
   saveUserProfile({ ...profile, selectedPersona: persona });
+};
+
+export const toggleTheme = () => {
+  const profile = getUserProfile();
+  const newTheme = profile.theme === 'dark' ? 'light' : 'dark';
+  saveUserProfile({ ...profile, theme: newTheme });
+  return newTheme;
+};
+
+export const updateLastNotification = () => {
+  const profile = getUserProfile();
+  saveUserProfile({ ...profile, lastNotification: Date.now() });
 };

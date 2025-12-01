@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { AVAILABLE_TOPICS, PERSONA_UI_DATA } from '../constants';
-import { getSelectedTopicIds, saveSelectedTopicIds, getUserProfile, setPersona, saveUserProfile } from '../services/storageService';
-import { CheckIcon, UserIcon, SparklesIcon, MapPinIcon, ChevronDownIcon, ChevronUpIcon, SettingsIcon, XIcon } from '../components/Icons';
-import { PersonaType } from '../types';
+import { getSelectedTopicIds, saveSelectedTopicIds, getUserProfile, setPersona, saveUserProfile, toggleTheme, redeemSecretCode } from '../services/storageService';
+import { CheckIcon, UserIcon, SparklesIcon, MapPinIcon, ChevronDownIcon, ChevronUpIcon, SettingsIcon, XIcon, MoonIcon, SunIcon, BellIcon } from '../components/Icons';
+import { PersonaType, NotificationFrequency, SubscriptionStatus } from '../types';
+import { requestNotificationPermission } from '../services/notificationService';
 
 interface SettingsPageProps {
   onFinish?: () => void;
+  onThemeChange?: () => void;
 }
 
 const CATEGORY_EMOJIS: Record<string, string> = {
@@ -19,24 +21,41 @@ const CATEGORY_EMOJIS: Record<string, string> = {
   'Lifestyle': '🧘'
 };
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
+const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish, onThemeChange }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [currentPersona, setCurrentPersona] = useState<PersonaType>(PersonaType.DEFAULT);
   const [city, setCity] = useState<string>('');
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isTopExpanded, setIsTopExpanded] = useState(true);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [notificationFreq, setNotificationFreq] = useState<NotificationFrequency>(NotificationFrequency.DAILY);
+  const [notificationPerm, setNotificationPerm] = useState(Notification.permission);
+  
+  // Secret Code State
+  const [showSecretInput, setShowSecretInput] = useState(false);
+  const [secretCode, setSecretCode] = useState('');
+  const [secretMessage, setSecretMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [subStatus, setSubStatus] = useState<SubscriptionStatus>(SubscriptionStatus.TRIAL);
 
   useEffect(() => {
     const profile = getUserProfile();
     setSelectedIds(getSelectedTopicIds());
     setCurrentPersona(profile.selectedPersona);
     setCity(profile.city || '');
+    setTheme(profile.theme);
+    setNotificationFreq(profile.notificationFrequency || NotificationFrequency.DAILY);
+    setSubStatus(profile.subscriptionStatus);
     
-    // Set default expanded category (NOT Slovensko)
-    // 'AI a tech core' seems like a good default for an AI app
-    setExpandedCategories(['AI a tech core']); 
+    // No categories expanded by default
+    setExpandedCategories([]); 
   }, []);
+
+  const handleToggleTheme = () => {
+    const newTheme = toggleTheme();
+    setTheme(newTheme);
+    if (onThemeChange) onThemeChange();
+  };
 
   const toggleTopic = (id: string) => {
     let newIds;
@@ -61,6 +80,34 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
     const profile = getUserProfile();
     saveUserProfile({ ...profile, city: newCity });
   };
+  
+  const handleNotificationChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const freq = e.target.value as NotificationFrequency;
+    
+    if (freq !== NotificationFrequency.OFF && Notification.permission !== 'granted') {
+       const granted = await requestNotificationPermission();
+       setNotificationPerm(Notification.permission);
+       if (!granted) {
+          alert('Pre zapnutie notifikácií musíte povoliť oprávnenie v prehliadači.');
+          return;
+       }
+    }
+    
+    setNotificationFreq(freq);
+    const profile = getUserProfile();
+    saveUserProfile({ ...profile, notificationFrequency: freq });
+  };
+
+  const handleSecretCodeSubmit = () => {
+      const success = redeemSecretCode(secretCode);
+      if (success) {
+          setSecretMessage({ type: 'success', text: 'Kód prijatý! Máte doživotný prístup.' });
+          setSubStatus(SubscriptionStatus.LIFETIME);
+          // Reload page logic/app state might be needed, handled by App checking profile on tab change
+      } else {
+          setSecretMessage({ type: 'error', text: 'Neplatný kód.' });
+      }
+  };
 
   const toggleCategory = (category: string) => {
     if (expandedCategories.includes(category)) {
@@ -79,9 +126,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
     return acc;
   }, {} as Record<string, typeof AVAILABLE_TOPICS>);
 
-  // Defines IDs for the "TOP" selection
-  // Added 'science' and 'slovakia_domestic' as requested
-  const topTopicIds = ['slovakia_domestic', 'ai_tech', 'science', 'economy', 'politics', 'health_longevity', 'sport_football'];
+  const topTopicIds = ['slovakia_domestic', 'ai_tech', 'science', 'sports_marketing', 'politics', 'health_longevity', 'sport_football'];
   const topTopics = AVAILABLE_TOPICS.filter(t => topTopicIds.includes(t.id));
 
   return (
@@ -89,42 +134,51 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
       
       <header className="mb-6 flex justify-between items-center">
         <div>
-           <h1 className="text-3xl font-bold text-slate-900 mb-1">Nastavenia</h1>
-           <p className="text-slate-500 text-sm">Prispôsob si svoj denný prehľad.</p>
+           <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">Nastavenia</h1>
+           <p className="text-slate-500 dark:text-slate-400 text-sm">Prispôsob si svoj denný prehľad.</p>
         </div>
-        <button 
-          onClick={() => setShowProfileModal(true)}
-          className="p-3 bg-white border border-slate-200 rounded-full text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-colors shadow-sm"
-          title="Profil a preferencie"
-        >
-          <SettingsIcon className="w-5 h-5" />
-        </button>
+        <div className="flex gap-2">
+            <button 
+                onClick={handleToggleTheme}
+                className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-500 dark:text-slate-400 hover:text-[#6466f1] dark:hover:text-[#6466f1] hover:border-[#6466f1] dark:hover:border-[#6466f1] transition-colors shadow-sm"
+                title="Prepnúť tmavý režim"
+            >
+                {theme === 'dark' ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+            </button>
+            <button 
+            onClick={() => setShowProfileModal(true)}
+            className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-500 dark:text-slate-400 hover:text-[#6466f1] dark:hover:text-[#6466f1] hover:border-[#6466f1] dark:hover:border-[#6466f1] transition-colors shadow-sm"
+            title="Profil a preferencie"
+            >
+            <SettingsIcon className="w-5 h-5" />
+            </button>
+        </div>
       </header>
 
-      {/* Topics Section (Immediately Visible) */}
+      {/* Topics Section */}
       <div>
         <div className="flex justify-between items-end mb-6">
           <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
             Sledované témy
           </h2>
-          <span className="text-xs text-slate-500 font-bold bg-slate-100 px-3 py-1 rounded-full">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
             {selectedIds.length} vybraných
           </span>
         </div>
 
         <div className="space-y-4">
           
-          {/* TOP Selection Card (Collapsible) */}
-          <div className="bg-white rounded-xl border border-indigo-100 shadow-sm overflow-hidden mb-6 transition-all duration-300">
+          {/* TOP Selection Card */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-indigo-100 dark:border-indigo-900/50 shadow-sm overflow-hidden mb-6 transition-all duration-300">
             <button 
               onClick={() => setIsTopExpanded(!isTopExpanded)}
-              className="w-full px-5 py-4 bg-gradient-to-r from-indigo-50 to-white border-b border-indigo-50 flex items-center justify-between"
+              className="w-full px-5 py-4 bg-gradient-to-r from-indigo-50 to-white dark:from-slate-800 dark:to-slate-900 border-b border-indigo-50 dark:border-slate-800 flex items-center justify-between"
             >
                <div className="flex items-center gap-2">
                  <span className="text-lg">🔥</span>
-                 <h3 className="text-sm font-bold text-indigo-900">TOP Výber</h3>
+                 <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-300">TOP Výber</h3>
                </div>
-               <div className="text-indigo-300">
+               <div className="text-indigo-300 dark:text-slate-500">
                   {isTopExpanded ? <ChevronUpIcon className="w-5 h-5" /> : <ChevronDownIcon className="w-5 h-5" />}
                </div>
             </button>
@@ -140,8 +194,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
                         className={`
                           flex items-center justify-between p-3 rounded-lg border text-left transition-all
                           ${isSelected 
-                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' 
-                            : 'bg-white border-slate-100 hover:border-indigo-200 text-slate-700'}
+                            ? 'bg-[#6466f1] border-[#6466f1] text-white shadow-md' 
+                            : 'bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-900 text-slate-700 dark:text-slate-300'}
                         `}
                       >
                         <span className="text-xs font-bold">
@@ -162,33 +216,30 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
             const emoji = CATEGORY_EMOJIS[category] || '📂';
             
             return (
-              <div key={category} className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm transition-all duration-300">
-                
-                {/* Accordion Header */}
+              <div key={category} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm transition-all duration-300">
                 <button 
                   onClick={() => toggleCategory(category)}
-                  className="w-full flex items-center justify-between p-5 bg-white hover:bg-slate-50 transition-colors"
+                  className="w-full flex items-center justify-between p-5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                      <span className="text-lg">{emoji}</span>
-                     <span className={`text-sm font-bold ${selectedCount > 0 ? 'text-indigo-900' : 'text-slate-700'}`}>
+                     <span className={`text-sm font-bold ${selectedCount > 0 ? 'text-indigo-900 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-200'}`}>
                        {category}
                      </span>
                      {selectedCount > 0 && (
-                        <span className="bg-indigo-100 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        <span className="bg-indigo-100 dark:bg-indigo-900/50 text-[#6466f1] dark:text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
                           {selectedCount}
                         </span>
                      )}
                   </div>
-                  <div className="text-slate-400">
+                  <div className="text-slate-400 dark:text-slate-600">
                     {isExpanded ? <ChevronUpIcon className="w-5 h-5" /> : <ChevronDownIcon className="w-5 h-5" />}
                   </div>
                 </button>
                 
-                {/* Accordion Content */}
                 {isExpanded && (
                   <div className="px-5 pb-5 pt-0 animate-in slide-in-from-top-2 duration-200">
-                    <div className="h-px bg-slate-50 mb-4"></div>
+                    <div className="h-px bg-slate-50 dark:bg-slate-800 mb-4"></div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {topics.map((topic) => {
                         const isSelected = selectedIds.includes(topic.id);
@@ -199,17 +250,17 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
                             className={`
                               flex items-center justify-between p-3 rounded-lg border text-left transition-all
                               ${isSelected 
-                                ? 'bg-indigo-50 border-indigo-200 shadow-sm' 
-                                : 'bg-white border-slate-100 hover:border-slate-300'}
+                                ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 shadow-sm' 
+                                : 'bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'}
                             `}
                           >
-                            <span className={`text-xs font-bold ${isSelected ? 'text-indigo-700' : 'text-slate-600'}`}>
+                            <span className={`text-xs font-bold ${isSelected ? 'text-[#6466f1] dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400'}`}>
                               {topic.name}
                             </span>
                             
                             <div className={`
                               w-5 h-5 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ml-2
-                              ${isSelected ? 'bg-indigo-600' : 'bg-slate-100 text-slate-300'}
+                              ${isSelected ? 'bg-[#6466f1]' : 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600'}
                             `}>
                               {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
                             </div>
@@ -225,19 +276,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
         </div>
       </div>
       
-      <div className="mt-8 text-center text-xs text-slate-400 mb-6">
-        Všetky zmeny sa ukladajú automaticky.
-      </div>
-
       {/* Sticky Bottom Action Button */}
       {selectedIds.length > 0 && onFinish && (
         <div className="fixed bottom-24 left-0 right-0 px-6 z-40 animate-in slide-in-from-bottom-4 duration-500 pointer-events-none flex justify-center">
             <div className="w-full max-w-md pointer-events-auto">
               <button 
                 onClick={onFinish}
-                className="w-full bg-indigo-600 text-white font-bold py-4 px-6 rounded-xl shadow-xl shadow-indigo-500/30 flex items-center justify-center gap-3 transform active:scale-95 transition-all hover:bg-indigo-700"
+                className="w-full bg-[#6466f1] text-white font-bold py-4 px-6 rounded-xl shadow-xl shadow-indigo-500/30 flex items-center justify-center gap-3 transform active:scale-95 transition-all hover:bg-indigo-600 dark:hover:bg-[#6466f1]"
               >
-                <SparklesIcon className="w-5 h-5 text-indigo-300" />
+                <SparklesIcon className="w-5 h-5 text-indigo-100" />
                 <span>Generovať prehľad</span>
               </button>
             </div>
@@ -248,42 +295,79 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
       {showProfileModal && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowProfileModal(false)}></div>
-            <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl relative z-10 animate-in zoom-in-95 duration-200">
                
-               <div className="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
-                  <h3 className="font-bold text-slate-900">Profil a preferencie</h3>
-                  <button onClick={() => setShowProfileModal(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200/50">
+               <div className="bg-slate-50 dark:bg-slate-950 p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center sticky top-0 z-20">
+                  <h3 className="font-bold text-slate-900 dark:text-white">Profil a preferencie</h3>
+                  <button onClick={() => setShowProfileModal(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-800">
                      <XIcon className="w-5 h-5" />
                   </button>
                </div>
 
-               <div className="p-6">
+               <div className="p-4 sm:p-5 space-y-4">
+                  {/* Subscription Status Badge */}
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                      <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Členstvo</p>
+                          <p className="font-bold text-sm text-slate-900 dark:text-white">
+                              {subStatus === SubscriptionStatus.LIFETIME ? 'Lifetime (Navždy)' : 
+                               subStatus === SubscriptionStatus.ACTIVE ? 'Premium' : 
+                               'Skúšobná verzia'}
+                          </p>
+                      </div>
+                      {subStatus === SubscriptionStatus.LIFETIME && <SparklesIcon className="w-5 h-5 text-[#6466f1]" />}
+                  </div>
+
                   {/* Location */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                      <MapPinIcon className="w-4 h-4 text-indigo-500" />
-                      Moja lokalita
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+                      <MapPinIcon className="w-3.5 h-3.5 text-[#6466f1]" />
+                      MOJA LOKALITA
                     </label>
                     <input 
                       type="text" 
                       value={city}
                       onChange={handleCityChange}
                       placeholder="napr. Bratislava"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-[#6466f1] outline-none transition-all"
                     />
+                  </div>
+                  
+                  {/* Notifications */}
+                  <div>
+                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+                        <BellIcon className="w-3.5 h-3.5 text-[#6466f1]" />
+                        NOTIFIKÁCIE
+                     </label>
+                     <div className="relative">
+                        <select
+                           value={notificationFreq}
+                           onChange={handleNotificationChange}
+                           className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white font-medium appearance-none outline-none focus:ring-2 focus:ring-[#6466f1] relative z-10 pr-8"
+                        >
+                           <option value={NotificationFrequency.DAILY}>Každý deň (09:00)</option>
+                           <option value={NotificationFrequency.EVERY_OTHER}>Každý druhý deň</option>
+                           <option value={NotificationFrequency.THREE_TIMES_DAY}>3x denne (9, 13, 18)</option>
+                           <option value={NotificationFrequency.WEEKLY}>Raz za týždeň (Pondelok)</option>
+                           <option value={NotificationFrequency.OFF}>Vypnuté</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none z-10">
+                           <ChevronDownIcon className="w-3.5 h-3.5" />
+                        </div>
+                     </div>
                   </div>
 
                   {/* Persona */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                      <UserIcon className="w-4 h-4 text-indigo-500" />
-                      Osobnosť AI (Mood)
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+                      <UserIcon className="w-3.5 h-3.5 text-[#6466f1]" />
+                      OSOBNOSŤ AI (MOOD)
                     </label>
                     <div className="relative">
                       <select 
                         value={currentPersona} 
                         onChange={handlePersonaChange}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-slate-900 font-medium appearance-none outline-none focus:ring-2 focus:ring-indigo-500 relative z-10 pr-10"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white font-medium appearance-none outline-none focus:ring-2 focus:ring-[#6466f1] relative z-10 pr-8"
                       >
                         {Object.entries(PERSONA_UI_DATA).map(([key, data]) => (
                           <option key={key} value={key}>
@@ -291,33 +375,69 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onFinish }) => {
                           </option>
                         ))}
                       </select>
-                      <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none z-10">
-                        <ChevronDownIcon className="w-4 h-4" />
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none z-10">
+                        <ChevronDownIcon className="w-3.5 h-3.5" />
                       </div>
                     </div>
-                    <div className="mt-3 bg-indigo-50 p-3 rounded-lg border border-indigo-100 flex gap-3 items-start">
-                      <span className="text-lg">💡</span>
-                      <p className="text-xs text-indigo-800 leading-relaxed font-medium pt-1">
-                        {PERSONA_UI_DATA[currentPersona]?.description}
-                      </p>
-                    </div>
                   </div>
-                  
-                  <div className="mt-8">
+
+                  <div className="pt-2">
                      <button 
                        onClick={() => setShowProfileModal(false)}
-                       className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors"
+                       className="w-full bg-slate-900 dark:bg-slate-800 text-white font-bold py-2.5 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors text-sm"
                      >
                        Hotovo
                      </button>
                   </div>
+
+                  {/* SECRET CODE UNLOCK (Subtle & Below Done) */}
+                  {subStatus !== SubscriptionStatus.LIFETIME && (
+                    <div className="pt-1 text-center border-t border-slate-50 dark:border-slate-800 mt-2">
+                        {!showSecretInput ? (
+                            <button 
+                                onClick={() => setShowSecretInput(true)}
+                                className="text-[9px] font-bold text-slate-300 dark:text-slate-700 uppercase tracking-widest hover:text-indigo-400 transition-colors py-2"
+                            >
+                                Mám kód
+                            </button>
+                        ) : (
+                            <div className="animate-in fade-in slide-in-from-bottom-2 pt-2">
+                                <div className="flex gap-2 mb-2">
+                                    <input 
+                                        type="text"
+                                        value={secretCode}
+                                        onChange={(e) => {
+                                            setSecretCode(e.target.value);
+                                            setSecretMessage(null);
+                                        }}
+                                        placeholder="Kód..."
+                                        className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#6466f1]"
+                                        autoFocus
+                                    />
+                                    <button 
+                                        onClick={handleSecretCodeSubmit}
+                                        className="bg-[#6466f1] text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                                    >
+                                        OK
+                                    </button>
+                                </div>
+                                {secretMessage && (
+                                    <p className={`text-[10px] font-bold ${secretMessage.type === 'success' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                        {secretMessage.text}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                  )}
+                  
                </div>
             </div>
          </div>
       )}
 
     </div>
-  );
+    );
 };
 
 export default SettingsPage;

@@ -8,6 +8,54 @@ import { fetchTextWithFallback } from './rssService';
 // This ensures we always use the current environment API key
 const getAiClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+// Strict mapping for common multi-word tags to single words
+const TAG_MAPPINGS: Record<string, string> = {
+  'umelá inteligencia': 'AI',
+  'artificial intelligence': 'AI',
+  'životné prostredie': 'Ekológia',
+  'sociálne siete': 'Social',
+  'kybernetická bezpečnosť': 'Kyber',
+  'virtuálna realita': 'VR',
+  'rozšírená realita': 'AR',
+  'kvantové počítanie': 'Kvantum',
+  'pozemný hokej': 'Hokej',
+  'športový marketing': 'Marketing',
+  'alternatívne bielkoviny': 'Potraviny',
+  'duševné zdravie': 'Psychológia',
+  'klimatické zmeny': 'Klíma',
+  'smart home': 'IoT',
+  'európska únia': 'EÚ',
+  'ľudské zdroje': 'HR',
+  'fúzie a akvizície': 'Dealy',
+  'spotrebná elektronika': 'Gadgets',
+  'obnoviteľné zdroje': 'Energia',
+  'vesmírny výskum': 'Vesmír',
+  'globálna politika': 'Politika',
+  'stredný východ': 'Konflikt',
+  'cestovný ruch': 'Travel',
+  'hry a e-šport': 'Gaming',
+  'ui/ux dizajn': 'Dizajn',
+  'ux dizajn': 'UX'
+};
+
+const sanitizeTag = (tag: string): string => {
+  const lower = tag.toLowerCase().trim();
+  
+  // 1. Check direct mapping
+  if (TAG_MAPPINGS[lower]) return TAG_MAPPINGS[lower];
+
+  // 2. If it's already single word, capitalize first letter and return
+  if (!lower.includes(' ')) {
+    return tag.charAt(0).toUpperCase() + tag.slice(1);
+  }
+
+  // 3. Fallback: Split by space and take the longest word (heuristic: noun is usually longer than adjective in Slovak)
+  const words = lower.split(/\s+/);
+  const longestWord = words.reduce((a, b) => a.length >= b.length ? a : b, '');
+  
+  return longestWord.charAt(0).toUpperCase() + longestWord.slice(1);
+};
+
 export const generateDailyDigest = async (articles: Article[], persona: PersonaType): Promise<DailyDigest> => {
   const ai = getAiClient();
   if (articles.length === 0) {
@@ -60,7 +108,7 @@ export const generateDailyDigest = async (articles: Article[], persona: PersonaT
                 sourceLink: { type: Type.STRING, description: "The EXACT Link URL of the source article used for this section" },
                 tags: {
                   type: Type.ARRAY,
-                  items: { type: Type.STRING, description: "Single word tag (e.g. 'Ekonomika')" }
+                  items: { type: Type.STRING, description: "Strictly SINGLE WORD tag (e.g. 'Ekonomika')" }
                 }
               },
               required: ["title", "whatIsNew", "whatChanged", "keyPoints", "tags", "sourceLink"]
@@ -80,9 +128,10 @@ export const generateDailyDigest = async (articles: Article[], persona: PersonaT
   const jsonResponse = JSON.parse(text);
   const todayId = new Date().toISOString().split('T')[0];
 
-  // Map directly without image processing
+  // Map directly without image processing but SANITIZE TAGS
   const enrichedSections = jsonResponse.sections.map((s: any) => ({
-    ...s
+    ...s,
+    tags: s.tags.map(sanitizeTag) // Enforce single word tags
   }));
 
   return {
@@ -142,7 +191,7 @@ export const generateAdditionalSections = async (
             sourceLink: { type: Type.STRING },
             tags: {
               type: Type.ARRAY,
-              items: { type: Type.STRING, description: "Single word tag only" }
+              items: { type: Type.STRING, description: "Strictly SINGLE WORD tag only" }
             }
           },
           required: ["title", "whatIsNew", "whatChanged", "keyPoints", "tags", "sourceLink"]
@@ -156,8 +205,11 @@ export const generateAdditionalSections = async (
 
   const rawSections = JSON.parse(text) as DigestSection[];
 
-  // Return sections without image mapping
-  return rawSections;
+  // Return sections with sanitized tags
+  return rawSections.map(s => ({
+    ...s,
+    tags: s.tags.map(sanitizeTag)
+  }));
 };
 
 export const createChatSession = (section: DigestSection): Chat => {

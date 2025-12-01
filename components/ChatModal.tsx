@@ -120,24 +120,24 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
       ></div>
 
       {/* Modal Content */}
-      <div className="bg-white w-full max-w-md h-[85vh] sm:h-[800px] sm:max-h-[90vh] sm:rounded-xl rounded-t-xl shadow-2xl flex flex-col pointer-events-auto transform transition-transform duration-300 ease-out translate-y-0 relative overflow-hidden animate-in slide-in-from-bottom-10">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-md h-[85vh] sm:h-[800px] sm:max-h-[90vh] sm:rounded-xl rounded-t-xl shadow-2xl flex flex-col pointer-events-auto transform transition-transform duration-300 ease-out translate-y-0 relative overflow-hidden animate-in slide-in-from-bottom-10">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-white z-10 shadow-sm">
+        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 z-10 shadow-sm">
           <div>
-            <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">AI asistent</span>
-            <h3 className="font-bold text-slate-900 line-clamp-1 text-sm">{section.title}</h3>
+            <span className="text-xs font-bold text-[#6466f1] dark:text-indigo-400 uppercase tracking-widest">AI asistent</span>
+            <h3 className="font-bold text-slate-900 dark:text-white line-clamp-1 text-sm">{section.title}</h3>
           </div>
           <button 
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors"
           >
             <XIcon className="w-6 h-6" />
           </button>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-950">
           {messages.map((msg) => (
             <div 
               key={msg.id} 
@@ -145,7 +145,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
             >
               <div className={`
                 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm
-                ${msg.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600 border border-slate-200'}
+                ${msg.role === 'user' ? 'bg-[#6466f1] text-white' : 'bg-white dark:bg-slate-900 text-[#6466f1] border border-slate-200 dark:border-slate-800'}
               `}>
                 {msg.role === 'user' ? <UserIcon className="w-5 h-5" /> : <BotIcon className="w-5 h-5" />}
               </div>
@@ -153,11 +153,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
               <div className={`
                 max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed shadow-sm
                 ${msg.role === 'user' 
-                  ? 'bg-indigo-600 text-white rounded-tr-none' 
-                  : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'}
+                  ? 'bg-[#6466f1] text-white rounded-tr-none' 
+                  : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-800 rounded-tl-none'}
               `}>
                 {msg.text ? (
-                  <div className={`markdown-content ${msg.role === 'user' ? 'text-white' : 'text-slate-800'}`}>
+                  <div className={`markdown-content ${msg.role === 'user' ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
                     <ReactMarkdown
                       components={{
                         strong: ({node, ...props}) => <strong className="font-bold text-inherit" {...props} />,
@@ -190,7 +190,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 pb-8 sm:pb-4 bg-white border-t border-slate-100">
+        <div className="p-4 pb-8 sm:pb-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
           <div className="relative flex items-center gap-2">
             <input
               type="text"
@@ -198,7 +198,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Opýtaj sa na detaily..."
-              className="flex-1 bg-slate-100 text-slate-900 placeholder-slate-500 border-0 rounded-xl px-5 py-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none shadow-inner"
+              className="flex-1 bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-500 border-0 rounded-xl px-5 py-3 focus:ring-2 focus:ring-[#6466f1] focus:bg-white dark:focus:bg-slate-900 transition-all outline-none shadow-inner"
               disabled={isLoading}
               autoFocus
             />
@@ -208,8 +208,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ section, onClose }) => {
               className={`
                 p-3 rounded-xl flex-shrink-0 transition-all duration-200
                 ${!inputValue.trim() || isLoading 
-                  ? 'bg-slate-100 text-slate-300' 
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200 hover:scale-105 active:scale-95'}
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600' 
+                  : 'bg-[#6466f1] text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none hover:scale-105 active:scale-95'}
               `}
             >
               <SendIcon className="w-5 h-5" />

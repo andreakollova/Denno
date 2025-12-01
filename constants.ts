@@ -6,7 +6,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   // --- Kategória: Slovensko ---
   {
     id: 'slovakia_domestic',
-    name: 'Domáce správy',
+    name: 'Slovenské spravodajstvo',
     category: 'Slovensko',
     rssUrls: [
       'https://www.aktuality.sk/rss/domace/',
@@ -38,12 +38,14 @@ export const AVAILABLE_TOPICS: Topic[] = [
   // --- Kategória: Veda a budúcnosť ---
   {
     id: 'medicine',
-    name: 'Medicína a medicínske tech',
+    name: 'Medicína',
     category: 'Veda a budúcnosť',
     rssUrls: [
+      'https://www.nature.com/nature.rss',
+      'https://rss.sciencedaily.com/health_medicine.xml',
+      'https://www.nih.gov/news-events/feed.xml',
       'https://www.medicalnewstoday.com/feed',
-      'https://www.sciencedaily.com/rss/health_medicine.xml',
-      'https://techcrunch.com/category/biotech-health/feed/'
+      'https://rss.medicalxpress.com/medical-news.xml'
     ]
   },
   {
@@ -61,8 +63,13 @@ export const AVAILABLE_TOPICS: Topic[] = [
     name: 'Veda a inovácie',
     category: 'Veda a budúcnosť',
     rssUrls: [
+      'https://www.science.org/rss/news_current.xml',
       'https://www.sciencedaily.com/rss/top_news.xml',
-      'https://www.wired.com/feed/category/science/latest/rss'
+      'https://www.wired.com/feed/category/science/latest/rss',
+      'https://www.nature.com/nature.rss',
+      'https://www.newscientist.com/feed/home/',
+      'https://phys.org/rss-feed/',
+      'https://feeds.arstechnica.com/arstechnica/science'
     ]
   },
   {
@@ -103,11 +110,12 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'renewable_energy',
-    name: 'Obnoviteľné zdroje',
+    name: 'Obnoviteľné zdroje a energetika',
     category: 'Veda a budúcnosť',
     rssUrls: [
       'https://cleantechnica.com/feed/',
-      'https://www.renewableenergyworld.com/feed/'
+      'https://www.renewableenergyworld.com/feed/',
+      'https://www.power-technology.com/feed/'
     ]
   },
   {
@@ -151,6 +159,15 @@ export const AVAILABLE_TOPICS: Topic[] = [
     ]
   },
   {
+    id: 'sport_field_hockey',
+    name: 'Pozemný hokej',
+    category: 'Šport a zábava',
+    rssUrls: [
+      'https://www.thehockeypaper.co.uk/feed',
+      'https://fieldhockey.com/index.php?format=feed&type=rss'
+    ]
+  },
+  {
     id: 'sport_basketball',
     name: 'Basketbal',
     category: 'Šport a zábava',
@@ -188,13 +205,21 @@ export const AVAILABLE_TOPICS: Topic[] = [
       'https://feeds.theguardian.com/theguardian/sport/womens-sport/rss'
     ]
   },
+  {
+    id: 'sports_marketing',
+    name: 'Športový marketing',
+    category: 'Šport a zábava',
+    rssUrls: [
+      'https://www.sportspromedia.com/feed/',
+      'https://sbcnews.co.uk/category/marketing/feed/'
+    ]
+  },
   // MOVED TO LAST PLACE IN CATEGORY
   {
     id: 'sports_biz',
     name: 'Športový biznis a tech',
     category: 'Šport a zábava',
     rssUrls: [
-      'https://www.sportspromedia.com/feed/',
       'https://frontofficesports.com/feed/',
       'https://www.sporttechie.com/feed/'
     ]
@@ -208,6 +233,16 @@ export const AVAILABLE_TOPICS: Topic[] = [
     rssUrls: [
       'https://techcrunch.com/category/artificial-intelligence/feed/',
       'https://www.theverge.com/rss/index.xml'
+    ]
+  },
+  {
+    id: 'ui_ux_design',
+    name: 'UI/UX a kreatívny dizajn',
+    category: 'AI a tech core',
+    rssUrls: [
+      'https://uxdesign.cc/feed',
+      'https://www.smashingmagazine.com/categories/ux-design/index.xml',
+      'https://sidebar.io/feed.xml'
     ]
   },
   {
@@ -244,6 +279,15 @@ export const AVAILABLE_TOPICS: Topic[] = [
     rssUrls: [
       'https://feeds.feedburner.com/entrepreneur/latest',
       'http://feeds.feedburner.com/TechCrunch/startups'
+    ]
+  },
+  {
+    id: 'deals_acquisitions',
+    name: 'Fúzie, akvizície a dealy',
+    category: 'Biznis a práca',
+    rssUrls: [
+      'https://techcrunch.com/tag/mergers-and-acquisitions/feed/',
+      'https://www.pehub.com/feed/'
     ]
   },
   {
@@ -329,7 +373,7 @@ export const AVAILABLE_TOPICS: Topic[] = [
   },
   {
     id: 'education',
-    name: 'Vzdelávanie a learning',
+    name: 'Vzdelávanie a e-learning',
     category: 'Spoločnosť',
     rssUrls: [
       'https://www.edutopia.org/feeds/latest',
@@ -341,8 +385,9 @@ export const AVAILABLE_TOPICS: Topic[] = [
     name: 'Zdravie a dlhovekosť',
     category: 'Lifestyle',
     rssUrls: [
-      'https://www.medicalnewstoday.com/feed',
-      'https://peterattiamd.com/feed/'
+      'https://peterattiamd.com/feed/',
+      'https://www.nia.nih.gov/news/rss',
+      'https://www.nature.com/nature.rss'
     ]
   },
   {
@@ -391,6 +436,16 @@ export const AVAILABLE_TOPICS: Topic[] = [
     ]
   },
   {
+    id: 'music_lifestyle',
+    name: 'Hudba',
+    category: 'Lifestyle',
+    rssUrls: [
+      'https://www.rollingstone.com/music/music-news/feed/',
+      'https://pitchfork.com/feed/feed-news/rss',
+      'https://www.billboard.com/feed/'
+    ]
+  },
+  {
     id: 'fashion',
     name: 'Móda a luxus',
     category: 'Lifestyle',
@@ -401,7 +456,95 @@ export const AVAILABLE_TOPICS: Topic[] = [
   }
 ];
 
-// Instructions for the AI (kept in English for better performance)
+export const CATEGORY_EMOJIS: Record<string, string> = {
+    // Specific Topics
+    'Futbal': '⚽',
+    'Hokej': '🏒',
+    'Pozemný hokej': '🏑',
+    'Basketbal': '🏀',
+    'F1': '🏎️',
+    'Gaming': '🎮',
+    'Športový marketing': '📢',
+    'Medicína': '🩺',
+    'Vesmír': '🚀',
+    'Robotika': '🤖',
+    'UI/UX': '🎨',
+    'Peniaze': '💰',
+    'Dealy': '🤝',
+    'Krypto': '⛓️',
+    'Jedlo': '🍔',
+    'Móda': '👗',
+    'Hudba': '🎵',
+    'Cestovanie': '✈️',
+    'Ekológia': '🌱',
+    'Umenie': '🎨',
+    'Kontroverzia': '🔥',
+
+    // General Categories
+    'Slovensko': '🇸🇰',
+    'Veda a budúcnosť': '🧬',
+    'Šport a zábava': '🏅',
+    'AI a tech core': '🤖',
+    'Biznis a práca': '💼',
+    'Spoločnosť': '🌍',
+    'Lifestyle': '🧘'
+};
+
+// Map tags to emojis for better visual cue
+export const getTagEmoji = (tag: string): string => {
+   // This helper is kept for reference or other uses
+   return '🔹';
+};
+
+export const getCategoryForTags = (tags: string[]): string => {
+    // Logic to determine the badge emoji/name based on the tags
+    for (const tag of tags) {
+        const t = tag.toLowerCase();
+
+        // Check for Controversy FIRST
+        if (t.includes('kontroverzia') || t.includes('controversy') || t.includes('škandál') || t.includes('konflikt')) return 'Kontroverzia';
+
+        // Specific Sport Checks
+        if (t.includes('marketing') && t.includes('šport')) return 'Športový marketing';
+        if (t.includes('pozemný') && t.includes('hokej')) return 'Pozemný hokej';
+        if (t.includes('futbal') || t.includes('football')) return 'Futbal';
+        if (t.includes('hokej') || t.includes('nhl')) return 'Hokej';
+        if (t.includes('basketbal') || t.includes('nba')) return 'Basketbal';
+        if (t.includes('f1') || t.includes('formula') || t.includes('motor')) return 'F1';
+        if (t.includes('gaming') || t.includes('esport') || t.includes('hry')) return 'Gaming';
+
+        // Specific Science Checks
+        if (t.includes('medicína') || t.includes('liek') || t.includes('zdravie') || t.includes('health')) return 'Medicína';
+        if (t.includes('vesmír') || t.includes('nasa') || t.includes('space')) return 'Vesmír';
+        if (t.includes('robot')) return 'Robotika';
+        if (t.includes('ui/ux') || t.includes('dizajn') || t.includes('ux')) return 'UI/UX';
+
+        // Specific Biz Checks
+        if (t.includes('akvizíc') || t.includes('fúzie') || t.includes('deal')) return 'Dealy';
+        if (t.includes('invest') || t.includes('financie') || t.includes('peniaze')) return 'Peniaze';
+        if (t.includes('krypto') || t.includes('bitcoin') || t.includes('blockchain')) return 'Krypto';
+
+        // Lifestyle Checks
+        if (t.includes('jedlo') || t.includes('food')) return 'Jedlo';
+        if (t.includes('móda') || t.includes('fashion') || t.includes('luxus')) return 'Móda';
+        if (t.includes('hudba') || t.includes('music') || t.includes('kapela')) return 'Hudba';
+        if (t.includes('cestovanie') || t.includes('travel')) return 'Cestovanie';
+        if (t.includes('klíma') || t.includes('energia') || t.includes('eko')) return 'Ekológia';
+        if (t.includes('dizajn') || t.includes('umenie')) return 'Umenie';
+
+        // General Fallbacks
+        if (t.includes('slovensko') || t.includes('domáce') || t.includes('spravodajstvo')) return 'Slovensko';
+        if (t.includes('šport') || t.includes('zábava')) return 'Šport a zábava';
+        if (t.includes('ai') || t.includes('tech') || t.includes('ui/ux')) return 'AI a tech core';
+        if (t.includes('biznis') || t.includes('ekonomika')) return 'Biznis a práca';
+        if (t.includes('veda')) return 'Veda a budúcnosť';
+        if (t.includes('lifestyle')) return 'Lifestyle';
+        if (t.includes('politika') || t.includes('spoločnosť')) return 'Spoločnosť';
+    }
+    return 'AI a tech core'; // Default fallback
+};
+
+
 export const PERSONA_PROMPTS: Record<PersonaType, string> = {
   [PersonaType.DEFAULT]: "Keep the tone professional, concise, yet engaging. Focus on clarity.",
   [PersonaType.CEO]: "Act as a busy CEO executive. Focus on business impact, ROI, market shifts, and strategic implications. Be extremely concise. Cut the fluff.",
@@ -412,7 +555,7 @@ export const PERSONA_PROMPTS: Record<PersonaType, string> = {
 // UI Descriptions for the User (Translated to Slovak)
 export const PERSONA_UI_DATA: Record<PersonaType, { label: string, description: string }> = {
   [PersonaType.DEFAULT]: {
-    label: "Vyvážený redaktor",
+    label: "Redaktor (predvolené)",
     description: "Profesionálny, stručný a jasný prehľad dňa. Ideálny pre každodenné čítanie."
   },
   [PersonaType.CEO]: {
@@ -424,7 +567,7 @@ export const PERSONA_UI_DATA: Record<PersonaType, { label: string, description: 
     description: "Jednoduché analógie, žiadny odborný žargón. Hravé a pochopiteľné pre každého."
   },
   [PersonaType.NERD]: {
-    label: "Technický analytik",
+    label: "Technický expert",
     description: "Hlboký ponor do technických detailov, špecifikácií a metodológie."
   }
 };
@@ -451,7 +594,7 @@ Structure your response to match this JSON schema:
       "whatChanged": "string (How is this different from before or what changed)",
       "keyPoints": ["string", "string", "string", "string", "string"] (Exactly 5 bullet points summarizing the whole event),
       "sourceLink": "string (The EXACT Link URL of the source article used for this section)",
-      "tags": ["string", "string"] (Max 2 tags. IMPORTANT: Each tag MUST be a single word. E.g. "Biznis", "AI". No multi-word tags.)
+      "tags": ["string", "string"] (Max 2 tags. IMPORTANT: Tags MUST be single words. Transform multi-word phrases to single nouns. E.g. 'Artificial Intelligence' -> 'AI', 'Social Media' -> 'Social'. NO spaces allowed in tags.)
     }
   ]
 }

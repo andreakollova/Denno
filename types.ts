@@ -57,12 +57,41 @@ export interface Topic {
   category: string;
 }
 
+export enum NotificationFrequency {
+  DAILY = 'daily',
+  EVERY_OTHER = 'every_other',
+  THREE_TIMES_DAY = 'three_times',
+  WEEKLY = 'weekly',
+  OFF = 'off'
+}
+
+export enum SubscriptionStatus {
+  TRIAL = 'trial',
+  ACTIVE = 'active',
+  EXPIRED = 'expired',
+  LIFETIME = 'lifetime'
+}
+
+export enum SubscriptionPlan {
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
+  NONE = 'none'
+}
+
 export interface UserProfile {
   streak: number;
   lastVisit: string;
   totalDigests: number;
   selectedPersona: PersonaType;
   city?: string;
+  theme: 'light' | 'dark';
+  notificationFrequency: NotificationFrequency;
+  lastNotification?: number;
+  // Subscription fields
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionPlan: SubscriptionPlan;
+  trialStartDate: number;
+  subscriptionExpiryDate?: number;
 }
 
 export interface LearningPack {

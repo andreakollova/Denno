@@ -1,14 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppTab } from './types';
+import { AppTab, SubscriptionStatus } from './types';
 import DigestPage from './pages/DigestPage';
 import HistoryPage from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
 import ToolsPage from './pages/ToolsPage';
 import Header from './components/Header';
+import SubscriptionModal from './components/SubscriptionModal';
 import { NewspaperIcon, CollectionIcon, SettingsIcon, SearchIcon } from './components/Icons';
-import { getUserProfile } from './services/storageService';
+import { getUserProfile, checkSubscriptionAccess } from './services/storageService';
 import { fetchCoordinates, fetchWeather, WeatherData } from './services/weatherService';
+import { checkAndTriggerNotification } from './services/notificationService';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DIGEST);
@@ -18,8 +20,15 @@ const App: React.FC = () => {
   const [profile, setProfile] = useState(getUserProfile());
   const [weather, setWeather] = useState<WeatherData | null>(null);
 
+  // Subscription State
+  const [hasAccess, setHasAccess] = useState(true);
+  
   useEffect(() => {
-    // Refresh profile when tab changes to update streak
+    // Check subscription status on load
+    const access = checkSubscriptionAccess();
+    setHasAccess(access);
+
+    // Refresh profile when tab changes to update streak, theme, and sub status
     setProfile(getUserProfile());
   }, [activeTab]);
 
@@ -38,7 +47,28 @@ const App: React.FC = () => {
       }
     };
     loadWeather();
-  }, [profile.city]); // Reload if city changes in settings
+  }, [profile.city]); 
+
+  // Notification Loop
+  useEffect(() => {
+    checkAndTriggerNotification();
+    const interval = setInterval(() => {
+      checkAndTriggerNotification();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [profile.notificationFrequency]);
+
+  const handleProfileUpdate = () => {
+    setProfile(getUserProfile());
+    // Re-check access in case it changed via settings/unlock
+    setHasAccess(checkSubscriptionAccess());
+  };
+
+  const handleSubscriptionSuccess = () => {
+    setHasAccess(true);
+    setProfile(getUserProfile()); // Update profile to reflect Active state
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -47,7 +77,7 @@ const App: React.FC = () => {
                   changeTab={setActiveTab} 
                   autoStart={autoStartDigest}
                   onAutoStartConsumed={() => setAutoStartDigest(false)}
-                  onProfileUpdate={() => setProfile(getUserProfile())} // Callback to update header immediately
+                  onProfileUpdate={handleProfileUpdate} 
                />;
       case AppTab.HISTORY:
         return <HistoryPage onBack={() => setActiveTab(AppTab.DIGEST)} />;
@@ -57,32 +87,40 @@ const App: React.FC = () => {
         return <SettingsPage onFinish={() => {
             setAutoStartDigest(true);
             setActiveTab(AppTab.DIGEST);
-        }} />;
+        }} onThemeChange={handleProfileUpdate} />;
       default:
         return <DigestPage changeTab={setActiveTab} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-indigo-100 selection:text-indigo-700 flex justify-center">
+    <div className={`min-h-screen font-sans flex justify-center transition-colors duration-300 ${profile.theme === 'dark' ? 'dark bg-slate-950' : 'bg-slate-50'}`}>
       
       {/* Mobile App Container */}
-      <div className="w-full max-w-md h-[100dvh] bg-white shadow-2xl shadow-slate-200/50 flex flex-col overflow-hidden relative">
+      <div className="w-full max-w-md h-[100dvh] bg-white dark:bg-slate-950 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 flex flex-col overflow-hidden relative text-slate-900 dark:text-slate-100 transition-colors duration-300">
         
+        {/* Subscription Gate */}
+        {!hasAccess && (
+            <SubscriptionModal 
+                status={profile.subscriptionStatus} 
+                onSuccess={handleSubscriptionSuccess} 
+            />
+        )}
+
         {/* Global Header */}
         <Header weather={weather} profile={profile} />
 
         {/* Scrollable Main Content */}
-        <main className="flex-1 overflow-y-auto no-scrollbar scroll-smooth bg-white relative">
+        <main className="flex-1 overflow-y-auto no-scrollbar scroll-smooth bg-white dark:bg-slate-950 relative">
           {renderContent()}
         </main>
 
-        {/* Bottom Navigation (Always Visible, Non-Overlapping) */}
-        <nav className="flex-shrink-0 bg-white/90 backdrop-blur-lg border-t border-slate-100 px-6 py-4 flex justify-between items-center z-50">
+        {/* Bottom Navigation */}
+        <nav className="flex-shrink-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-t border-slate-100 dark:border-slate-800 px-6 py-4 flex justify-between items-center z-50 transition-colors duration-300">
           
           <button 
             onClick={() => setActiveTab(AppTab.DIGEST)}
-            className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.DIGEST ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.DIGEST ? 'text-[#6466f1]' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
             <NewspaperIcon className="w-6 h-6" />
             <span className="text-[9px] font-medium uppercase tracking-wide">Prehľad</span>
@@ -90,7 +128,7 @@ const App: React.FC = () => {
 
           <button 
             onClick={() => setActiveTab(AppTab.HISTORY)}
-            className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.HISTORY ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.HISTORY ? 'text-[#6466f1]' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
             <CollectionIcon className="w-6 h-6" />
             <span className="text-[9px] font-medium uppercase tracking-wide">Uložené</span>
@@ -98,7 +136,7 @@ const App: React.FC = () => {
           
           <button 
             onClick={() => setActiveTab(AppTab.TOOLS)}
-            className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.TOOLS ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.TOOLS ? 'text-[#6466f1]' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
             <SearchIcon className="w-6 h-6" />
             <span className="text-[9px] font-medium uppercase tracking-wide">Nástroje</span>
@@ -106,7 +144,7 @@ const App: React.FC = () => {
 
           <button 
             onClick={() => setActiveTab(AppTab.SETTINGS)}
-            className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.SETTINGS ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === AppTab.SETTINGS ? 'text-[#6466f1]' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
             <SettingsIcon className="w-6 h-6" />
             <span className="text-[9px] font-medium uppercase tracking-wide">Nastavenia</span>
