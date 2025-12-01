@@ -256,8 +256,30 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
 
   if (!digest) {
     return (
-      // Added min-h-[calc(100dvh-150px)] to center content vertically in the available area
-      <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-150px)] px-6">
+      // Added min-h-full to ensure it covers the entire scrollable area down to the nav
+      <div className="relative flex flex-col items-center justify-center min-h-[calc(100dvh-80px)] px-6 overflow-hidden">
+        
+        {/* Subtle Animated Background Blobs */}
+        <style>{`
+            @keyframes blob-float-1 {
+                0%, 100% { transform: translate(0, 0) scale(1); }
+                50% { transform: translate(-20px, 20px) scale(1.1); }
+            }
+            @keyframes blob-float-2 {
+                0%, 100% { transform: translate(0, 0) scale(1); }
+                50% { transform: translate(20px, -20px) scale(1.1); }
+            }
+            .animate-blob-1 { animation: blob-float-1 15s ease-in-out infinite; }
+            .animate-blob-2 { animation: blob-float-2 18s ease-in-out infinite; }
+        `}</style>
+        
+        {/* Top Right Blob - Pushed WAY off screen (-800px) */}
+        <div className="absolute -top-60 -right-[800px] w-[800px] h-[800px] bg-[#6466f1] rounded-full blur-[120px] opacity-[0.15] dark:opacity-[0.12] animate-blob-1 pointer-events-none mix-blend-multiply dark:mix-blend-normal"></div>
+        
+        {/* Bottom Left Blob - Pushed WAY off screen (-800px) */}
+        <div className="absolute -bottom-60 -left-[800px] w-[800px] h-[800px] bg-purple-600 rounded-full blur-[120px] opacity-[0.15] dark:opacity-[0.12] animate-blob-2 pointer-events-none mix-blend-multiply dark:mix-blend-normal"></div>
+
+
         <div className="relative z-10 text-center w-full max-w-sm">
           <div className="flex items-center justify-center gap-2 mb-4">
              <span className="text-xs font-bold text-[#6466f1] uppercase tracking-widest opacity-80">
@@ -270,7 +292,7 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
           </h1>
 
           <p className="text-lg text-slate-500 dark:text-slate-400 mb-8 font-light">
-            Tvoj osobný AI editor je pripravený.<br/>
+            Tvoj osobný AI kurátor je pripravený.<br/>
             <span className="text-xs mt-2 block opacity-70">Mód: <span className="uppercase font-bold">{PERSONA_UI_DATA[profile.selectedPersona]?.label || profile.selectedPersona}</span></span>
           </p>
           
@@ -320,9 +342,8 @@ const DigestPage: React.FC<DigestPageProps> = ({ changeTab, autoStart, onAutoSta
         <div className="px-6 py-6 pb-32 space-y-8">
             
             {/* Header: Date & Title */}
-            <div>
-               <div className="flex items-center gap-2 mb-4">
-                 <span className="w-2 h-2 rounded-full bg-[#6466f1]"></span>
+            <div className="mb-8">
+               <div className="mb-4">
                  <p className="text-xs font-bold text-[#6466f1] uppercase tracking-widest">{formattedDate}</p>
                </div>
                <h1 className="text-3xl font-black text-slate-900 dark:text-white leading-none tracking-tight">
